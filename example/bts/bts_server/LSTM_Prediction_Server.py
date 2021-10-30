@@ -72,6 +72,7 @@ class LSTM_Prediction_Server(object):
         metrices = {}
         for metric in self.metrices:
             metrices = {**metrices,**self.metrices[metric].to_dict()}
+        print(metric)
         self.qoa_client.send_report(metrices)
         ########################################################################      
 
@@ -86,9 +87,12 @@ class LSTM_Prediction_Server(object):
         print(prediction_to_str.replace('  ', ''))
     
     def start(self):
-        self.qoa_client.start()
+        # self.qoa_client.start()
         self.sub_thread.start()
-    
+        while True:
+            print("waiting")
+            time.sleep(10)
+
     def stop(self):
         self.sub_queue.stop()
         

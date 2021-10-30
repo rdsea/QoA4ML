@@ -54,6 +54,12 @@ class Mess_Handler(object):
         # Send report to OPA engine
         violation = self.connector.send(qoa_report["url"], byte_report)
         print(violation)
+        if str("ResponseTime violation") in str(violation):
+            self.prom_metric.inc_violation("ResponseTime")
+        if str("Accuracy violation") in str(violation):
+            self.prom_metric.inc_violation("Accuracy")
+        if str("Data quality violation") in str(violation):
+            self.prom_metric.inc_violation("DataAccuracy")
         self.amqp_client.send_data(props.reply_to, str(violation), props.correlation_id) 
 
     def make_qoa_report(self, data):

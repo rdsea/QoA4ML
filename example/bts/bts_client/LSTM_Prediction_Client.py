@@ -15,7 +15,8 @@ from qoa4ml_lib.qoa4ml.reports import Qoa_Client
 class LSTM_Prediction_Client(object):
 
     def __init__(self, configuration):
-
+        self.request_count = 0
+        self.response_count = 0
         # Connect to RabbitMQ host
         self.broker_info = configuration["broker_service"]
         self.ml_service = configuration["ml_service"]
@@ -23,7 +24,7 @@ class LSTM_Prediction_Client(object):
         self.normalize = configuration["data_normalize"]
 
 
-        self.amqp_client = Amqp_Client(self, self.broker_info, self.ml_service, log=True)
+        self.amqp_client = Amqp_Client(self, self.broker_info, self.ml_service, log=False)
         self.sub_thread = threading.Thread(target=self.amqp_client.start)
 
         #################### Declare the QoA Object ###############################
@@ -34,7 +35,8 @@ class LSTM_Prediction_Client(object):
     # Check if the response is available
     def message_processing(self, ch, method, props, body):
         predict_value = json.loads(str(body.decode("utf-8")))
-        
+        self.response_count += 1
+        print("Responed Count: {}".format(self.response_count))
         pre_val = self.denormalize(predict_value["LSTM"])
         dict_predicted = {
             "LSTM": pre_val
@@ -81,6 +83,8 @@ class LSTM_Prediction_Client(object):
         body_mess = json.dumps(json_mess)
     
         self.amqp_client.send_data(routing_key, body_mess, corr_id)
+        self.request_count += 1
+        print("Sent Count: {}".format(self.request_count))
         print("Data sent")
 
         
@@ -121,7 +125,7 @@ class LSTM_Prediction_Client(object):
         print(prediction_to_str.replace('  ', ''))
 
     def start(self):
-        self.qoa_client.start()
+        # self.qoa_client.start()
         self.sub_thread.start()
     
     def denormalize(self, value):

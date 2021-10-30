@@ -27,10 +27,12 @@ class Amqp_Client(object):
         self.out_channel.exchange_declare(exchange=self.exchange_name, exchange_type=self.exchange_type)
         
         # Declare a queue to receive prediction response
-        self.queue = self.in_channel.queue_declare(queue=queue_info["in_queue"], exclusive=True)
+        self.queue = self.in_channel.queue_declare(queue=queue_info["in_queue"], exclusive=False)
         self.queue_name = self.queue.method.queue
         # Binding the exchange to the queue with specific routing
         self.in_channel.queue_bind(exchange=self.exchange_name, queue=self.queue_name, routing_key=self.in_routing_key)
+
+        print("Finish initializing messaging client")
         
 
     def send_data(self, routing_key, body_mess, corr_id):

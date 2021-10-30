@@ -37,10 +37,10 @@
         "port": 9098,
         "metric":{
             "Accuracy": {
-                "Prom_name":"mlservice_accuracy",
-                "Type": "Gauge",
-                "Description": "Accuracy",
-                "Default": 100
+            "Prom_name":"mlservice_accuracy",
+            "Type": "Gauge",
+            "Description": "Accuracy",
+            "Default": 100
             },
             "ResponseTime": {
                 "Prom_name":"mlservice_responsetime",

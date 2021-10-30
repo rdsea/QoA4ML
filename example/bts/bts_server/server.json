@@ -41,8 +41,8 @@
         "client_id":"aaltosea1",
         "exchange_name": "lstm_bts",
         "exchange_type": "topic",
-        "in_queue": "in_request_lstm",
-        "out_queue": "out_queue_lstm",
+        "in_queue": "in_request_qoa1",
+        "out_queue": "out_queue_qoa1",
         "in_routing_key": "lstm.request.#",
         "out_routing_key": "lstm.request.#",
         "roles": "server"
