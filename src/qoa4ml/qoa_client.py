@@ -27,13 +27,6 @@ from .lang.datamodel_enum import (
     ServiceAPIEnum,
     ServiceMetricNameEnum,
 )
-from .probes.dataquality import (
-    eva_duplicate,
-    eva_erronous,
-    eva_missing,
-    eva_none,
-    image_quality,
-)
 from .reports.abstract_report import AbstractReport
 from .reports.rohe_reports import RoheReport
 from .utils.logger import qoa_logger
@@ -340,41 +333,3 @@ class QoaClient(Generic[T]):
     ):
         metric = Metric(metric_name=metric_name, records=[value])
         self.qoa_report.observe_inference_metric(metric)
-
-    def observe_erronous(self, data, errors=None):
-        results = eva_erronous(data, errors=errors)
-        if results is not None:
-            for key in results:
-                self.observe_metric(key, results[key], 1)
-
-    def observe_duplicate(self, data):
-        results = eva_duplicate(data)
-        if results is not None:
-            for key in results:
-                self.observe_metric(key, results[key], 1)
-
-    def observe_missing(
-        self, data, null_count=True, correlations=False, predict=False, random_state=0
-    ):
-        results = eva_missing(
-            data,
-            null_count=null_count,
-            correlations=correlations,
-            predict=predict,
-            random_state=random_state,
-        )
-        if results is not None:
-            for key in results:
-                self.observe_metric(key, results[key], 1)
-
-    def observe_image_quality(self, image):
-        results = image_quality(image)
-        if results is not None:
-            for key in results:
-                self.observe_metric(key, results[key], 1)
-
-    def observe_none(self, data):
-        results = eva_none(data)
-        if results is not None:
-            for key in results:
-                self.observe_metric(key, results[key], 1)
