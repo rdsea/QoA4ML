@@ -33,15 +33,15 @@ tinyflux = ">=1.0.0"
 uvicorn = ">=0.29.0"
 lazy-import = ">=0.2.2"
 confluent-kafka = "^2.4.0"
+docker_py = "1.10.6"
+numpy = ">=1.23.5"
+pandas = ">=1.4.3"
 
-docker_py = { version = "1.10.6", optional = true }
 paho_mqtt = { version = "1.6.1", optional = true }
 Pillow = { version = "10.0.0", optional = true }
 prometheus-client = { version = "0.16.0", optional = true }
 tensorflow = { version = "2.10.0", optional = true }
 # ydata-quality = { version = "0.1.0", optional = true }
-numpy = { version = ">=1.23.5", optional = true }
-pandas = { version = ">=1.4.3", optional = true }
 
 
 [tool.poetry.group.dev.dependencies]
@@ -54,14 +54,11 @@ codespell = "^2.3.0"
 
 [tool.poetry.extras]
 ml = [
-  "docker_py",
   "paho_mqtt",
   "Pillow",
   "prometheus-client",
   "tensorflow",
   # "ydata-quality",
-  "numpy",
-  "pandas",
 ]
 
 [tool.ruff]
