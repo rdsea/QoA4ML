@@ -59,4 +59,4 @@ repos:
       - id: poetry-check
         args: ["-C", "./src/qoa4ml", "--lock"]
       - id: poetry-lock
-        args: [-C, ./src/rohe, --no-update]
+        args: [-C, ./src/rohe, --no-update, --no-cache]
