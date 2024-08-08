@@ -36,7 +36,7 @@ if __name__ == "__main__":
         count = 0
         error = 0
         start_time = time.time()
-        while time.time() - start_time < 1:
+        while time.time() - start_time < 10:
             try:
                 # client1.timer()
                 print("This is thread: ", num_thread, "Starting request: ", count)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
                 client5.observe_inference_metric("accuracy", random.randint(1, 100))
                 client5.timer()
                 report_5 = client5.report(submit=True)
-                debug(report_5)
+                # debug(report_5)
                 with open(
                     "qoa4ml-general-ml-report-schema.json", "w", encoding="utf-8"
                 ) as file:
