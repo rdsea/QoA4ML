@@ -1,0 +1,39 @@
+{
+  "client_config": {
+    "id": "mlprovider01",
+    "role": "mlprovider"
+  },
+  "connector_conf": {
+    "amqp_connector": {
+      "class": "amqp",
+      "conf": {
+        "end_point": "localhost",
+        "exchange_name": "object_detection",
+        "exchange_type": "topic",
+        "out_routing_key": "qoa1.report.ml"
+      }
+    }
+  },
+  "stage_conf": {
+    "enhance_image": {
+      "instance_id": "ingestion_rasp",
+      "method": "kernel3x3",
+      "stage_id": "image_enhance"
+    },
+    "max_aggregate": {
+      "instance_id": "aggregation_jetson",
+      "method": "max",
+      "stage_id": "aggregation"
+    },
+    "yolov5": {
+      "instance_id": "yolov5_jetson",
+      "method": "",
+      "stage_id": "ml_inference"
+    },
+    "yolov8": {
+      "instance_id": "yolov8_gcs",
+      "method": "",
+      "stage_id": "ml_inference"
+    }
+  }
+}

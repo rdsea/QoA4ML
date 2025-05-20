@@ -1,0 +1,268 @@
+{
+  "cost": {
+    "cost": {
+      "class": "cost",
+      "operators": [
+        "min",
+        "max",
+        "range"
+      ],
+      "unit": [
+        "USD",
+        "EUR",
+        "other"
+      ],
+      "value": "value"
+    },
+    "pricingmodel": {
+      "class": "cost",
+      "id": "the id of the pricing model in the system",
+      "name": "name"
+    }
+  },
+  "fairness": {
+    "predictionbias": {
+      "class": [
+        "Accuracy"
+      ],
+      "operators": [
+        "min",
+        "max"
+      ],
+      "unit": "percentage",
+      "value": "value"
+    }
+  },
+  "interpretability": {
+    "explainability": {
+      "modes": [
+        "full",
+        "compact"
+      ]
+    }
+  },
+  "privacy": {
+    "membershipinferencerisk": {
+      "class": [
+        "Privacy"
+      ],
+      "operators": [
+        "min",
+        "max"
+      ],
+      "range": [
+        0,
+        1
+      ],
+      "unit": "float",
+      "value": "value"
+    }
+  },
+  "quality": {
+    "data": [
+      {
+        "Accuracy": {
+          "attributenames": "Accuracy",
+          "class": [
+            "qualityofdata"
+          ],
+          "id": 4,
+          "operators": "min",
+          "unit": "percentage",
+          "value": 80
+        }
+      },
+      {
+        "Completeness": {
+          "attributenames": "Completeness",
+          "id": 5,
+          "operators": "min",
+          "resourceType": [
+            "qualityofdata"
+          ],
+          "unit": "percentage",
+          "value": 90
+        }
+      }
+    ],
+    "mlmodels": [
+      {
+        "Accuracy": {
+          "attributenames": "Accuracy of MLmodel on small devices",
+          "class": [
+            "Accuracy"
+          ],
+          "id": 6,
+          "machinetypes": [
+            "small"
+          ],
+          "operators": "min",
+          "unit": "percentage",
+          "value": 80
+        }
+      },
+      {
+        "Accuracy": {
+          "attributenames": "Accuracy of MLmodel on normal devices",
+          "class": [
+            "Accuracy"
+          ],
+          "id": 7,
+          "machinetypes": [
+            "normal"
+          ],
+          "operators": "min",
+          "unit": "percentage",
+          "value": 95
+        }
+      }
+    ],
+    "services": [
+      {
+        "ResponseTime": {
+          "attributenames": "ResponseTime on small devices",
+          "class": [
+            "performance"
+          ],
+          "id": 1,
+          "machinetypes": [
+            "small"
+          ],
+          "operators": "max",
+          "unit": "s",
+          "value": 0.05
+        }
+      },
+      {
+        "ResponseTime": {
+          "attributenames": "ResponseTime on normal devices",
+          "class": [
+            "performance"
+          ],
+          "id": 2,
+          "machinetypes": [
+            "normal"
+          ],
+          "operators": "max",
+          "unit": "s",
+          "value": 0.05
+        }
+      },
+      {
+        "Reliability": {
+          "attributenames": "Reliability on normal devices",
+          "class": [
+            "performance"
+          ],
+          "id": 3,
+          "machinetypes": [
+            "normal"
+          ],
+          "operators": "min",
+          "unit": "percentage",
+          "value": 90
+        }
+      }
+    ]
+  },
+  "resources": {
+    "data": [
+      {
+        "datatypes": "plain_text",
+        "formats": "csv",
+        "id": "BTS"
+      }
+    ],
+    "mlmodels": [
+      {
+        "id": "ml_inference",
+        "inferencemodes": "dynamic",
+        "mlinfrastructures": "tensorflow",
+        "modelclasses": [
+          "RNN",
+          "LR"
+        ]
+      },
+      {
+        "id": "ml_training",
+        "inferencemodes": "dynamic",
+        "mlinfrastructures": "tensorflow",
+        "modelclasses": [
+          "RNN"
+        ]
+      }
+    ],
+    "service": [
+      {
+        "id": "request",
+        "machinetypes": [
+          "small",
+          "normal"
+        ],
+        "processortypes": [
+          "CPU"
+        ],
+        "serviceapis": "mptt"
+      }
+    ]
+  },
+  "security": {
+    "encryptedinference": {
+      "mode": [
+        true,
+        false
+      ]
+    },
+    "encryption": {
+      "types": [
+        "end2end"
+      ]
+    }
+  },
+  "stakeholders": [
+    {
+      "id": "google1",
+      "provisioning": [
+        "storage",
+        "computing"
+      ],
+      "roles": "inf_provider"
+    },
+    {
+      "id": "google2",
+      "provisioning": [
+        "storage"
+      ],
+      "roles": "inf_provider"
+    },
+    {
+      "id": "aaltosea1",
+      "provisioning": [
+        "mlmodels",
+        "services"
+      ],
+      "roles": "ml_provider"
+    },
+    {
+      "id": "aaltosea2",
+      "provisioning": [
+        "mlmodels"
+      ],
+      "roles": "ml_provider"
+    },
+    {
+      "id": "user1",
+      "provisioning": [
+        "request"
+      ],
+      "roles": "ml_user"
+    },
+    {
+      "id": "user2",
+      "provisioning": [
+        "request"
+      ],
+      "roles": "ml_user"
+    }
+  ]
+}
