@@ -3,8 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ..lang.common_models import Metric
-from ..lang.datamodel_enum import MetricNameEnum, ReportTypeEnum
+from qoa4ml.lang.common_models import Metric
+from qoa4ml.lang.datamodel_enum import MetricNameEnum, ReportTypeEnum
 
 GENERAL_REPORT_VERSION = "v0.1"
 GENERAL_REPORT_NAME = "qoa4ml-report-common-schema"

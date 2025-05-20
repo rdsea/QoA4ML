@@ -5,10 +5,10 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..config.configs import ClientInfo, ProbeConfig
-from ..connector.base_connector import BaseConnector
-from ..utils.qoa_utils import make_folder
-from ..utils.repeated_timer import RepeatedTimer
+from qoa4ml.config.configs import ClientInfo, ProbeConfig
+from qoa4ml.connector.base_connector import BaseConnector
+from qoa4ml.utils.qoa_utils import make_folder
+from qoa4ml.utils.repeated_timer import RepeatedTimer
 
 
 class Probe(ABC):

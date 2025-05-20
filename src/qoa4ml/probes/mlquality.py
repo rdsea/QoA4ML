@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 import lazy_import
 
-from ..utils.logger import qoa_logger
-from ..utils.qoa_utils import is_numpyarray
+from qoa4ml.utils.logger import qoa_logger
+from qoa4ml.utils.qoa_utils import is_numpyarray
 
 np = lazy_import.lazy_module("numpy")
 tf = lazy_import.lazy_module("tensorflow")

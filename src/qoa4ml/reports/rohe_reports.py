@@ -3,11 +3,11 @@ import time
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
-from ..config.configs import ClientInfo
-from ..lang.common_models import Metric
-from ..lang.datamodel_enum import ReportTypeEnum
-from ..reports.abstract_report import AbstractReport
-from ..reports.ml_report_model import (
+from qoa4ml.config.configs import ClientInfo
+from qoa4ml.lang.common_models import Metric
+from qoa4ml.lang.datamodel_enum import ReportTypeEnum
+from qoa4ml.reports.abstract_report import AbstractReport
+from qoa4ml.reports.ml_report_model import (
     EnsembleInferenceReport,
     ExecutionGraph,
     InferenceGraph,
@@ -17,7 +17,7 @@ from ..reports.ml_report_model import (
     RoheReportModel,
     StageReport,
 )
-from ..utils.qoa_utils import load_config
+from qoa4ml.utils.qoa_utils import load_config
 
 
 class RoheReport(AbstractReport):

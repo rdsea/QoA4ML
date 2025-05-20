@@ -16,7 +16,7 @@ import numpy as np
 import psutil
 import yaml
 
-from .logger import qoa_logger
+from qoa4ml.utils.logger import qoa_logger
 
 
 def make_folder(temp_path: str) -> bool:

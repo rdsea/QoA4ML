@@ -4,8 +4,8 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 
-from ...config.configs import ExporterConfig
-from .node_aggregator import NodeAggregator
+from qoa4ml.config.configs import ExporterConfig
+from qoa4ml.observability.odop_obs.node_aggregator import NodeAggregator
 
 logging.basicConfig(
     format="%(asctime)s:%(levelname)s -- %(message)s", level=logging.INFO

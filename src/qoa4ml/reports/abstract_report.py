@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from ..lang.common_models import Metric
-from ..reports.ml_report_model import BaseReport
+from qoa4ml.lang.common_models import Metric
+from qoa4ml.reports.ml_report_model import BaseReport
 
 
 class AbstractReport(ABC):

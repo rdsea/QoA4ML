@@ -3,13 +3,12 @@ import time
 
 import docker
 
+from qoa4ml.config.configs import ClientInfo, DockerProbeConfig
+from qoa4ml.connector.base_connector import BaseConnector
+from qoa4ml.probes.probe import Probe
 from qoa4ml.reports.resources_report_model import DockerReport
-
-from ..config.configs import ClientInfo, DockerProbeConfig
-from ..connector.base_connector import BaseConnector
-from ..utils.docker_util import get_docker_stats
-from ..utils.logger import qoa_logger
-from .probe import Probe
+from qoa4ml.utils.docker_util import get_docker_stats
+from qoa4ml.utils.logger import qoa_logger
 
 
 class DockerMonitoringProbe(Probe):

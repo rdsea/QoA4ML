@@ -5,9 +5,9 @@ import pandas as pd
 from fastapi import UploadFile
 from PIL import Image
 
-from ..lang.attributes import DataQualityEnum
-from ..lang.datamodel_enum import ImageQualityNameEnum
-from .logger import qoa_logger
+from qoa4ml.lang.attributes import DataQualityEnum
+from qoa4ml.lang.datamodel_enum import ImageQualityNameEnum
+from qoa4ml.utils.logger import qoa_logger
 
 
 # TODO: add citation for each metric implementation

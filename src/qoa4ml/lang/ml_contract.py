@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
-from .common_models import BaseConstraint
-from .datamodel_enum import (
+from qoa4ml.lang.common_models import BaseConstraint
+from qoa4ml.lang.datamodel_enum import (
     DataFormatEnum,
     DataTypeEnum,
     DevelopmentEnvironmentEnum,

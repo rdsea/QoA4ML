@@ -7,19 +7,19 @@ from typing import TYPE_CHECKING
 
 import lazy_import
 
-from ..config.configs import ClientInfo, SystemProbeConfig
-from ..connector.base_connector import BaseConnector
-from ..lang.datamodel_enum import EnvironmentEnum
-from ..utils.gpu_utils import get_sys_gpu_metadata, get_sys_gpu_usage
-from ..utils.jetson_utils import find_igpu, get_gpu_load
-from ..utils.qoa_utils import (
+from qoa4ml.config.configs import ClientInfo, SystemProbeConfig
+from qoa4ml.connector.base_connector import BaseConnector
+from qoa4ml.lang.datamodel_enum import EnvironmentEnum
+from qoa4ml.probes.probe import Probe
+from qoa4ml.utils.gpu_utils import get_sys_gpu_metadata, get_sys_gpu_usage
+from qoa4ml.utils.jetson_utils import find_igpu, get_gpu_load
+from qoa4ml.utils.qoa_utils import (
     convert_to_gbyte,
     convert_to_mbyte,
     get_sys_cpu_metadata,
     get_sys_cpu_util,
     get_sys_mem,
 )
-from .probe import Probe
 
 if TYPE_CHECKING:
     from ..reports import resources_report_model

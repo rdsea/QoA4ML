@@ -64,20 +64,7 @@ class AmqpConnector(BaseConnector):
         self.health_check_disable = self.config.health_check_disable
 
         # Connect to RabbitMQ host
-        if "amqps://" in self.config.end_point:
-            parameters = pika.URLParameters(self.config.end_point)
-            if self.health_check_disable:
-                parameters.heartbeat = 0
-        else:
-            if self.health_check_disable:
-                parameters = pika.ConnectionParameters(
-                    host=self.config.end_point, heartbeat=0
-                )
-            else:
-                parameters = pika.ConnectionParameters(host=self.config.end_point)
-        self.out_connection = pika.BlockingConnection(parameters)
-
-        self.out_channel = self.out_connection.channel()
+        self.create_connection()
 
         # Initialize an Exchange
         self.out_channel.exchange_declare(
@@ -126,6 +113,8 @@ class AmqpConnector(BaseConnector):
         - If `corr_id` is not provided, a new UUID will be generated.
         - If `routing_key` is not provided, the default `out_routing_key` will be used.
         """
+
+        self.create_connection()
         if corr_id is None:
             corr_id = str(uuid.uuid4())
         if routing_key is None:

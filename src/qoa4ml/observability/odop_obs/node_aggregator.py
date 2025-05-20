@@ -11,11 +11,11 @@ import lazy_import
 from fastapi import APIRouter
 from flatten_dict import flatten, unflatten
 
-from ...collector.socket_collector import SocketCollector
-from ...config.configs import NodeAggregatorConfig
-from ...lang.datamodel_enum import EnvironmentEnum
-from ...utils.qoa_utils import make_folder
-from .embedded_database import EmbeddedDatabase
+from qoa4ml.collector.socket_collector import SocketCollector
+from qoa4ml.config.configs import NodeAggregatorConfig
+from qoa4ml.lang.datamodel_enum import EnvironmentEnum
+from qoa4ml.observability.odop_obs.embedded_database import EmbeddedDatabase
+from qoa4ml.utils.qoa_utils import make_folder
 
 logging.basicConfig(
     format="%(asctime)s:%(levelname)s -- %(message)s", level=logging.INFO
@@ -24,13 +24,13 @@ logging.basicConfig(
 METRICS_URL_PATH = "/metrics"
 
 if TYPE_CHECKING:
-    from ...reports.resources_report_model import ProcessReport, SystemReport
+    from qoa4ml.reports.resources_report_model import ProcessReport, SystemReport
 else:
     ProcessReport = lazy_import.lazy_class(
-        "...reports.resources_report_model", "ProcessReport"
+        "qoa4ml.reports.resources_report_model", "ProcessReport"
     )
     SystemReport = lazy_import.lazy_class(
-        "...reports.resources_report_model", "SystemReport"
+        "qoa4ml.reports.resources_report_model", "SystemReport"
     )
 
 

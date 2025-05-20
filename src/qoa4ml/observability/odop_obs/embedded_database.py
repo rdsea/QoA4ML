@@ -4,11 +4,12 @@ from datetime import datetime
 from pathlib import Path
 
 from tinyflux import Point, TimeQuery, TinyFlux
+from tinyflux.storages import CSVStorage
 
 
 class EmbeddedDatabase:
     def __init__(self, db_path: Path) -> None:
-        self.db = TinyFlux(db_path)
+        self.db = TinyFlux(db_path, flush_on_insert=False, storage=CSVStorage)
 
     def insert(self, timestamp: float, tags: dict, fields: dict):
         timestamp_datetime = datetime.fromtimestamp(timestamp)

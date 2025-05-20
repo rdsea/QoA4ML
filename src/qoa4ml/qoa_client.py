@@ -12,7 +12,7 @@ import requests
 from pydantic import create_model
 
 # from .connector.mqtt_connector import Mqtt_Connector
-from .config.configs import (
+from qoa4ml.config.configs import (
     AMQPConnectorConfig,
     ClientConfig,
     ClientInfo,
@@ -23,24 +23,24 @@ from .config.configs import (
     ProcessProbeConfig,
     SystemProbeConfig,
 )
-from .connector.amqp_connector import AmqpConnector
-from .connector.base_connector import BaseConnector
-from .connector.debug_connector import DebugConnector
-from .lang.attributes import ServiceQualityEnum
-from .lang.common_models import Metric
-from .lang.datamodel_enum import (
+from qoa4ml.connector.amqp_connector import AmqpConnector
+from qoa4ml.connector.base_connector import BaseConnector
+from qoa4ml.connector.debug_connector import DebugConnector
+from qoa4ml.lang.attributes import ServiceQualityEnum
+from qoa4ml.lang.common_models import Metric
+from qoa4ml.lang.datamodel_enum import (
     MetricNameEnum,
     ReportTypeEnum,
     ServiceAPIEnum,
 )
-from .probes.docker_monitoring_probe import DockerMonitoringProbe
-from .probes.probe import Probe
-from .probes.process_monitoring_probe import ProcessMonitoringProbe
-from .probes.system_monitoring_probe import SystemMonitoringProbe
-from .reports.abstract_report import AbstractReport
-from .reports.ml_reports import MLReport
-from .utils.logger import qoa_logger
-from .utils.qoa_utils import (
+from qoa4ml.probes.docker_monitoring_probe import DockerMonitoringProbe
+from qoa4ml.probes.probe import Probe
+from qoa4ml.probes.process_monitoring_probe import ProcessMonitoringProbe
+from qoa4ml.probes.system_monitoring_probe import SystemMonitoringProbe
+from qoa4ml.reports.abstract_report import AbstractReport
+from qoa4ml.reports.ml_reports import MLReport
+from qoa4ml.utils.logger import qoa_logger
+from qoa4ml.utils.qoa_utils import (
     load_config,
     set_logger_level,
 )

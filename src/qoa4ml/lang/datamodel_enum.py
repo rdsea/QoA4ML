@@ -1,7 +1,11 @@
 from enum import Enum
 from typing import Union
 
-from .attributes import DataQualityEnum, MLModelQualityEnum, ServiceQualityEnum
+from qoa4ml.lang.attributes import (
+    DataQualityEnum,
+    MLModelQualityEnum,
+    ServiceQualityEnum,
+)
 
 
 class ResourcesUtilizationMetricNameEnum(str, Enum):

@@ -10,7 +10,7 @@ include = ["src/qoa4ml"]
 
 [project]
 name = "qoa4ml"
-version = "0.3.16"
+version = "0.3.18"
 description = "Quality of Analysis for Machine Learning"
 readme = "README.md"
 
@@ -48,11 +48,11 @@ dependencies = [
   "pydantic>=2.7.4,<2.8",
   "tinyflux>=1.0.0",
   "uvicorn>=0.29.0",
-  "lazy-import>=0.2.2",
   "docker==7.1.0",
   "numpy>=1.23.5",
   "eval-type-backport>=0.2.0",
   "devtools",
+  "lazy-import>=0.2.2",
 ]
 
 optional-dependencies.kafka = ["confluent-kafka>=2.4.0"]

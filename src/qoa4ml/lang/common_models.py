@@ -2,7 +2,11 @@ from typing import Optional, Union
 
 from pydantic import BaseModel
 
-from .datamodel_enum import AggregateFunctionEnum, MetricNameEnum, OperatorEnum
+from qoa4ml.lang.datamodel_enum import (
+    AggregateFunctionEnum,
+    MetricNameEnum,
+    OperatorEnum,
+)
 
 
 class Metric(BaseModel):

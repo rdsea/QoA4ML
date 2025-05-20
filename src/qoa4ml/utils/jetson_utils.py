@@ -1,7 +1,7 @@
 import os
 import re
 
-from .logger import qoa_logger
+from qoa4ml.utils.logger import qoa_logger
 
 DEFAULT_IGPU_PATH = "/sys/class/devfreq/"
 

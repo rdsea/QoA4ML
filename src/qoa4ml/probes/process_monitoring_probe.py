@@ -9,17 +9,17 @@ from typing import TYPE_CHECKING
 import lazy_import
 import psutil
 
-from ..config.configs import ClientInfo, ProcessProbeConfig
-from ..connector.base_connector import BaseConnector
-from ..lang.datamodel_enum import EnvironmentEnum
-from ..utils.qoa_utils import (
+from qoa4ml.config.configs import ClientInfo, ProcessProbeConfig
+from qoa4ml.connector.base_connector import BaseConnector
+from qoa4ml.lang.datamodel_enum import EnvironmentEnum
+from qoa4ml.probes.probe import Probe
+from qoa4ml.utils.qoa_utils import (
     convert_to_mbyte,
     get_process_allowed_cpus,
     get_process_allowed_memory,
     report_proc_child_cpu,
     report_proc_mem,
 )
-from .probe import Probe
 
 if TYPE_CHECKING:
     from ..reports import resources_report_model

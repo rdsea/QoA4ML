@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from ..config.configs import ClientInfo
+from qoa4ml.config.configs import ClientInfo
 
 
 class BaseMetadata(BaseModel):
