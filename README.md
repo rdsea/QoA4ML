@@ -15,26 +15,20 @@
 
 # Introduction
 
-QoA4ML consists of a set of utilities and specs for supporting quality of analytics in ML and data intensive (micro)services. Especially, we focus on services and systems of services across edge-cloud continuum, which are built as a composition of (micro)services.
+QoA4ML consists of a set of measurement probes, utilities and specs for supporting quality of analytics in ML and data intensive (micro)services. Especially, we focus on services and systems of services across edge-cloud continuum, which are built as a composition of (micro)services.
 
 ## QoA4ML Specification
 
 The design of QoA4ML specification is in [language](language/)
 
-## QoA4ML Utilities
+## QoA4ML Probes
 
-Developers can call many functions from a QoAClient and QoA4ML's [utilities](qoa4ml_lib/utils.py) to evaluate/report ML-specific attributes (e.g., data quality, inference performance), build the quality reports, and send them to the observation services.
+We include [different probes](src/qoa4ml/probes/) for measuring quality of data, computing resource performance, etc.
+
+## 
+
+Developers can call many functions from a [QoAClient](src/qoa4ml/qoa_client.py) and QoA4ML's [utilities](src/qoa4ml/utils) to evaluate/report ML-specific attributes (e.g., data quality, inference performance), build the quality reports, and send them to the observation services.
 The QoAClient can be initiated with various configurations for specifying observation server and communication protocols (e.g., messaging) in different formats (e.g., json and yaml).
-
-The detail documents for QoA4ML utilization is presented in [qoa4ml_lib](qoa4ml_lib/)
-
-> For a local build and use QoA4ML one can do:
-
-```bash
-$python3 -m pip install build
-$cd qoa4ml_lib/
-$python -m build
-```
 
 ## QoA4ML Reports
 
