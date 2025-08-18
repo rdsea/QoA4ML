@@ -1,4 +1,4 @@
-# QoA4ML - Quality of Analytics for Machine Learning Services
+# QoA4ML - Quality of Analytics for Machine Learning and Data Intensive Services
 
 ---
 
@@ -15,7 +15,7 @@
 
 # Introduction
 
-QoA4ML consists of a set of utilities and specs for supporting quality of analytics in ML services. Especially, we focus on ML services across edge-cloud continuum, which are built as a composition of services.
+QoA4ML consists of a set of utilities and specs for supporting quality of analytics in ML and data intensive (micro)services. Especially, we focus on services and systems of services across edge-cloud continuum, which are built as a composition of (micro)services.
 
 ## QoA4ML Specification
 
