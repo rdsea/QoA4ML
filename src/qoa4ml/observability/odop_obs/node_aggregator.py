@@ -5,15 +5,14 @@ import socket
 from datetime import datetime
 from pathlib import Path
 from threading import Thread
-from typing import TYPE_CHECKING
 
-import lazy_import
 from fastapi import APIRouter
 
 from qoa4ml.collector.socket_collector import SocketCollector
 from qoa4ml.config.configs import NodeAggregatorConfig
 from qoa4ml.lang.datamodel_enum import EnvironmentEnum
 from qoa4ml.observability.odop_obs.embedded_database import EmbeddedDatabase
+from qoa4ml.reports.resources_report_model import ProcessReport, SystemReport
 from qoa4ml.utils.qoa_utils import flatten, make_folder, unflatten
 
 logging.basicConfig(
@@ -21,16 +20,6 @@ logging.basicConfig(
 )
 
 METRICS_URL_PATH = "/metrics"
-
-if TYPE_CHECKING:
-    from qoa4ml.reports.resources_report_model import ProcessReport, SystemReport
-else:
-    ProcessReport = lazy_import.lazy_class(
-        "qoa4ml.reports.resources_report_model", "ProcessReport"
-    )
-    SystemReport = lazy_import.lazy_class(
-        "qoa4ml.reports.resources_report_model", "SystemReport"
-    )
 
 
 class NodeAggregator:

@@ -1,6 +1,28 @@
 Change Log
 ======================
 
+0.3.18 (25/03/2026)
+---------------------
+Major refactor and production readiness release:
+- Migrate from Rye to uv for package management
+- Drop Python 3.9/3.10/3.11, target Python 3.12+
+- Modernize all type hints to Python 3.12+ syntax
+- Add mypy type checking to CI (0 errors)
+- Replace pickle with JSON in socket connector/collector (security fix)
+- Replace unmaintained flatten_dict and lazy-import with stdlib
+- Add thread safety to QoaClient (all mutating methods locked)
+- Add AMQP heartbeat keepalive and reconnect backoff
+- Relax pydantic (<3) and docker (<8) version pins
+- Fix critical bugs: pydantic v1 API, enum typos, missing returns
+- Replace bare except Exception with specific types throughout
+- Add comprehensive test suite (428 tests, all modules covered)
+- Add Field descriptions to all config models for documentation
+- Add metrics documentation, report and data quality examples
+- Add CI workflows: lint, typecheck, test, publish (PyPI OIDC)
+- Add Dependabot for automated dependency updates
+- Remove outdated examples and legacy test directories
+- Define public API in __init__.py, add py.typed (PEP 561)
+
 0.0.13 (18/04/2022)
 ---------------------
 First Release 

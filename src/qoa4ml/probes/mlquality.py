@@ -1,15 +1,17 @@
-from typing import TYPE_CHECKING, Any
-
-import lazy_import
+from typing import Any
 
 from qoa4ml.utils.logger import qoa_logger
 from qoa4ml.utils.qoa_utils import is_numpyarray
 
-np = lazy_import.lazy_module("numpy")
-tf = lazy_import.lazy_module("tensorflow")
-if TYPE_CHECKING:
-    import numpy as np  # type: ignore[no-redef]
-    import tensorflow as tf  # type: ignore[no-redef]
+try:
+    import numpy as np
+except ImportError:
+    np = None  # type: ignore[assignment]
+
+try:
+    import tensorflow as tf
+except ImportError:
+    tf = None  # type: ignore[assignment]
 
 
 def timeseries_metric(model: Any) -> dict[str, Any]:

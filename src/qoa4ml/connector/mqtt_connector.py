@@ -1,16 +1,12 @@
-from typing import TYPE_CHECKING
-
-import lazy_import
-
 from ..collector.host_object import HostObject
 from ..config.configs import MQTTConnectorConfig
 from ..utils.logger import qoa_logger
 from .base_connector import BaseConnector
 
-if TYPE_CHECKING:
+try:
     import paho.mqtt.client as mqtt
-else:
-    mqtt = lazy_import.lazy_module("paho.mqtt")
+except ImportError:
+    mqtt = None  # type: ignore[assignment]
 
 
 # TODO: this client handle both connector and collector
