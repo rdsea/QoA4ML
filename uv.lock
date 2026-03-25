@@ -1998,7 +1998,7 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest", specifier = ">=8.3.2" },
     { name = "pytest-sugar", specifier = ">=1.0.0" },
-    { name = "ruff" },
+    { name = "ruff", specifier = ">=0.15.7" },
 ]
 
 [[package]]

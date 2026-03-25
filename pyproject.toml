@@ -86,7 +86,7 @@ AaltoSEA = "https://rdsea.github.io/"
 [dependency-groups]
 dev = [
   "pre-commit",
-  "ruff",
+  "ruff>=0.15.7",
   "codespell",
   "mypy",
   "pytest>=8.3.2",
