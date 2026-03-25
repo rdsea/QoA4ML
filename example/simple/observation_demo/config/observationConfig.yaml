@@ -1,0 +1,17 @@
+collector:
+  name: amqp_collector
+  connectorType: AMQP
+  config:
+    end_point: localhost
+    exchange_name: cain_demo
+    exchange_type: topic
+    in_queue: collector_1
+    in_routing_key: in_routing_key
+connector:
+  name: amqp_connector
+  connectorType: AMQP
+  config:
+    end_point: localhost
+    exchange_name: cain_demo
+    exchange_type: topic
+    out_routing_key: out_routing_key

@@ -1,5 +1,5 @@
-test/
 modules/orchestration/temp/
+archive/
 .venv
 *.DS_Store
 *.jpg
@@ -20,3 +20,9 @@ modules/orchestration/temp/
 observability/odop_obs/logs/*.txt
 observability/odop_obs/tinyflux/*.csv
 .python-version
+plan/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/

@@ -1,6 +1,6 @@
 import pickle
 import socket
-from typing import Callable
+from collections.abc import Callable
 
 from ..config.configs import SocketCollectorConfig
 from .base_collector import BaseCollector

@@ -1,4 +1,4 @@
-from typing import Generic, Optional, TypeVar, Union
+from typing import TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -20,7 +20,7 @@ class MicroserviceInstance(BaseModel):
     id: UUID
     name: str
     functionality: str = ""
-    stage: Optional[str] = None
+    stage: str | None = None
     # stage: Optional[StageNameEnum] = None
 
 
@@ -35,24 +35,24 @@ class InferenceInstance(BaseModel):
     instance_id: UUID
     functionality: str
     metrics: list[Metric] = []
-    prediction: Optional[Union[dict, float]] = None
+    prediction: dict | float | None = None
 
 
 InstanceType = TypeVar("InstanceType")
 
 
-class LinkedInstance(BaseModel, Generic[InstanceType]):
+class LinkedInstance[InstanceType](BaseModel):
     previous: list[InstanceType] = []
     instance: InstanceType
 
 
 class ExecutionGraph(BaseModel):
-    end_point: Optional[MicroserviceInstance] = None
+    end_point: MicroserviceInstance | None = None
     linked_list: dict[UUID, LinkedInstance[MicroserviceInstance]]
 
 
 class InferenceGraph(BaseModel):
-    end_point: Optional[InferenceInstance] = None
+    end_point: InferenceInstance | None = None
     linked_list: dict[UUID, LinkedInstance[InferenceInstance]] = {}
 
 
@@ -84,9 +84,9 @@ class GeneralMlInferenceReport(MlQualityReport, BaseReport):
 
 
 class EnsembleInferenceReport(MlQualityReport):
-    ml_specific: Optional[InferenceGraph] = None
+    ml_specific: InferenceGraph | None = None
 
 
 class RoheReportModel(BaseReport):
-    inference_report: Optional[EnsembleInferenceReport] = None
-    execution_graph: Optional[ExecutionGraph] = None
+    inference_report: EnsembleInferenceReport | None = None
+    execution_graph: ExecutionGraph | None = None

@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 import pika
 
@@ -54,7 +53,7 @@ class AmqpCollector(BaseCollector):
     def __init__(
         self,
         configuration: AMQPCollectorConfig,
-        host_object: Optional[HostObject] = None,
+        host_object: HostObject | None = None,
     ):
         """
         Initialize an instance of AmqpCollector.

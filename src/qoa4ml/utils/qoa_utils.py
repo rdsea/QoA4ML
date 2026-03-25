@@ -6,11 +6,9 @@ import pathlib
 import re
 import shlex
 import subprocess
-import sys
 import time
-import traceback
 from threading import Thread
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import psutil
@@ -41,7 +39,7 @@ def make_folder(temp_path: str) -> bool:
         if not os.path.exists(temp_path):
             os.makedirs(temp_path)
         return True
-    except Exception:
+    except OSError:
         return False
 
 
@@ -112,7 +110,7 @@ def set_logger_level(logging_level: int) -> None:
     qoa_logger.setLevel(log_levels[logging_level])
 
 
-def load_config(file_path: str) -> Optional[dict]:
+def load_config(file_path: str) -> dict | None:
     """
     Load a configuration file.
 
@@ -138,8 +136,8 @@ def load_config(file_path: str) -> Optional[dict]:
                 return yaml.safe_load(f)
             else:
                 qoa_logger.warning("Unsupported format")
-    except Exception:
-        qoa_logger.error("Unable to load configuration")
+    except (OSError, json.JSONDecodeError, yaml.YAMLError) as e:
+        qoa_logger.error(f"Unable to load configuration: {e}")
         return None
 
 
@@ -317,7 +315,7 @@ def report_proc_child_cpu(process: psutil.Process) -> dict:
     }
 
 
-def get_proc_cpu(pid: Optional[int] = None) -> dict:
+def get_proc_cpu(pid: int | None = None) -> dict:
     """
     Retrieve CPU usage statistics for a given process and its children.
 
@@ -366,7 +364,7 @@ def report_proc_mem(process: psutil.Process) -> dict:
     return {key: getattr(mem_info, key) for key in mem_info._fields}
 
 
-def get_proc_mem(pid: Optional[int] = None) -> dict:
+def get_proc_mem(pid: int | None = None) -> dict:
     """
     Retrieve memory usage statistics for a given process and its children.
 
@@ -485,14 +483,12 @@ def system_report(
     while sys_monitor_flag:
         try:
             report["sys_cpu_stats"] = get_sys_cpu()
-        except Exception as e:
-            qoa_logger.error(f"Error {type(e)} in report CPU stat: {e}")
-            traceback.print_exception(*sys.exc_info())
+        except Exception:
+            qoa_logger.exception("Error in report CPU stat")
         try:
             report["sys_mem_stats"] = get_sys_mem()
-        except Exception as e:
-            qoa_logger.error(f"Error {type(e)} in report memory stat: {e}")
-            traceback.print_exception(*sys.exc_info())
+        except Exception:
+            qoa_logger.exception("Error in report memory stat")
         try:
             report["sys_net_stats"] = get_sys_net()
             sent = 0
@@ -516,14 +512,12 @@ def system_report(
                 curr_net_value["receive"] - last_net_value["receive"]
             )
             last_net_value = curr_net_value.copy()
-        except Exception as e:
-            qoa_logger.error(f"Error {type(e)} in report network stat: {e}")
-            traceback.print_exception(*sys.exc_info())
+        except Exception:
+            qoa_logger.exception("Error in report network stat")
         try:
             client.report(report=report)
-        except Exception as e:
-            qoa_logger.error(f"Error {type(e)} in sent system report: {e}")
-            traceback.print_exception(*sys.exc_info())
+        except Exception:
+            qoa_logger.exception("Error in sent system report")
         time.sleep(interval)
 
 
@@ -668,9 +662,8 @@ def merge_report(f_report: dict, i_report: dict, prio: bool = True) -> dict:
             f_report.update(i_report)
         elif f_report != i_report:
             return f_report if prio else i_report
-    except Exception as e:
-        qoa_logger.error(f"Error {type(e)} in merge_report: {e.__traceback__}")
-        traceback.print_exception(*sys.exc_info())
+    except Exception:
+        qoa_logger.exception("Error in merge_report")
     return f_report
 
 
@@ -702,9 +695,8 @@ def get_dict_at(dictionary: dict, i: int = 0):
     try:
         keys = list(dictionary.keys())
         return keys[i], dictionary[keys[i]]
-    except Exception as e:
-        qoa_logger.error(f"Error {type(e)} in get_dict_at: {e.__traceback__}")
-        traceback.print_exception(*sys.exc_info())
+    except (IndexError, KeyError):
+        qoa_logger.exception("Error in get_dict_at")
 
 
 def get_file_dir(file: str, to_string: bool = True):
@@ -786,7 +778,7 @@ def get_process_allowed_cpus() -> list[int]:
     return list(affinity)
 
 
-def get_process_allowed_memory() -> Optional[float]:
+def get_process_allowed_memory() -> float | None:
     """
     Retrieve the memory limit allowed to the process.
 

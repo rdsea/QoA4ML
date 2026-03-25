@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 from pydantic import BaseModel
 
 from qoa4ml.lang.datamodel_enum import (
@@ -11,14 +9,14 @@ from qoa4ml.lang.datamodel_enum import (
 
 class Metric(BaseModel):
     metric_name: MetricNameEnum
-    records: list[Union[dict, float, int, tuple, str]] = []
-    unit: Optional[str] = None
-    description: Optional[str] = None
+    records: list[dict | float | int | tuple | str] = []
+    unit: str | None = None
+    description: str | None = None
 
 
 class Condition(BaseModel):
     operator: OperatorEnum
-    value: Union[dict, float, int]
+    value: dict | float | int
 
 
 class MetricConstraint(BaseModel):

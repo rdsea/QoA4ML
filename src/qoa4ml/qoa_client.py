@@ -1,12 +1,10 @@
 import copy
 import os
-import sys
 import threading
 import time
-import traceback
 import uuid
 from threading import Thread
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Any, TypeVar
 
 import requests
 from pydantic import create_model
@@ -52,13 +50,13 @@ headers = {"Content-Type": "application/json"}
 T = TypeVar("T", bound=AbstractReport)
 
 
-class QoaClient(Generic[T]):
+class QoaClient[T: AbstractReport]:
     def __init__(
         self,
         report_cls: type[T] = MLReport,
-        config_dict: Optional[dict] = None,
-        config_path: Optional[str] = None,
-        registration_url: Optional[str] = None,
+        config_dict: dict | None = None,
+        config_path: str | None = None,
+        registration_url: str | None = None,
     ):
         """
         Initialize the QoA Client with configuration settings and a report class.
@@ -146,7 +144,6 @@ class QoaClient(Generic[T]):
                     )
             except Exception as e:
                 qoa_logger.exception(f"Error {type(e)} when registering QoA client")
-                traceback.print_exception(*sys.exc_info())
 
         if not self.connector_list:
             qoa_logger.warning("No connector initiated")
@@ -180,7 +177,7 @@ class QoaClient(Generic[T]):
         This method sends a POST request to the given URL with the client's configuration in JSON format.
         """
         return requests.request(
-            "POST", url, headers=headers, data=self.client_config.json()
+            "POST", url, headers=headers, data=self.client_config.model_dump_json()
         )
 
     def init_probes(
@@ -366,7 +363,7 @@ class QoaClient(Generic[T]):
             )
             return response_time
 
-    def import_previous_report(self, reports: Union[dict, list[dict]]) -> None:
+    def import_previous_report(self, reports: dict | list[dict]) -> None:
         """
         Import and process previous reports.
 
@@ -381,7 +378,7 @@ class QoaClient(Generic[T]):
         else:
             self.qoa_report.process_previous_report(reports)
 
-    def asyn_report(self, body_mess: str, connectors: Optional[list] = None) -> None:
+    def asyn_report(self, body_mess: str, connectors: list | None = None) -> None:
         """
         Asynchronously send a report through the connectors.
 
@@ -396,32 +393,31 @@ class QoaClient(Generic[T]):
         -----
         Uses threading to send reports asynchronously.
         """
-        self.lock.acquire()
-        if connectors is None:
-            if self.default_connector:
-                chosen_connector = self.connector_list[self.default_connector]
-                if isinstance(chosen_connector, AmqpConnector):
-                    if not chosen_connector.check_connection():
-                        chosen_connector.reconnect()
+        with self.lock:
+            if connectors is None:
+                if self.default_connector:
+                    chosen_connector = self.connector_list[self.default_connector]
+                    if isinstance(chosen_connector, AmqpConnector):
+                        if not chosen_connector.check_connection():
+                            chosen_connector.reconnect()
 
-                    chosen_connector.send_report(body_mess, corr_id=str(uuid.uuid4()))
+                        chosen_connector.send_report(
+                            body_mess, corr_id=str(uuid.uuid4())
+                        )
+                    else:
+                        chosen_connector.send_report(body_mess)
                 else:
-                    chosen_connector.send_report(body_mess)
-            else:
-                qoa_logger.error(
-                    "No default connector, please specify the connector to use"
-                )
-        else:
-            pass
-        self.lock.release()
+                    qoa_logger.error(
+                        "No default connector, please specify the connector to use"
+                    )
 
     def report(
         self,
-        report: Optional[dict] = None,
-        connectors: Optional[list] = None,
+        report: dict | None = None,
+        connectors: list | None = None,
         submit: bool = False,
         reset: bool = True,
-        corr_id: Optional[str] = None,
+        corr_id: str | None = None,
     ) -> str:
         """
         Generate a report and optionally submit it through the default connector.

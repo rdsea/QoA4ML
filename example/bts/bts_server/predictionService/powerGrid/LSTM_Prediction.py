@@ -93,7 +93,7 @@ class LSTM_Prediction_Service:
         for key in data:
             prediction += f"\n# {key} : {data[key]} "
 
-        prediction_to_str = f"""{'='*40}
+        prediction_to_str = f"""{"=" * 40}
         # Prediction Server:{prediction}
-        {'='*40}"""
+        {"=" * 40}"""
         print(prediction_to_str.replace("  ", ""))

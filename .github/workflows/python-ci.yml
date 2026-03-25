@@ -1,55 +1,44 @@
-name: Python CI
+name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  tests:
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-    runs-on: ubuntu-22.04
+  lint:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install tox tox-gh-actions tox-uv
-      - name: Test with tox
-        run: tox
-
-  pre-commit:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10.14"
-
-      - uses: eifinger/setup-rye@v4
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff format --check src tests
+      - run: uv run ruff check src tests
+      - run: uv run codespell src tests
 
-      - name: Set Rye Config
-        run: |
-          rye config --set-bool behavior.global-python=true
-          rye config --set-bool behavior.use-uv=true
-        shell: bash
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run mypy src/qoa4ml
 
-      - name: Sync dependencies
-        run: rye sync
-
-      - name: Rye fmt
-        run: rye fmt --check
-
-      - name: Rye lint
-        run: rye lint src
-
-      - name: Rye lint
-        run: rye sync
+  test:
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv sync --frozen
+      - run: uv run pytest tests/ -v

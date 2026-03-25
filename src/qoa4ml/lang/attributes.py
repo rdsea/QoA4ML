@@ -1,5 +1,5 @@
 import inspect
-from enum import Enum, EnumMeta
+from enum import EnumMeta, StrEnum
 
 QOA_ATTRIBUTES_VERSION = "v0.3"
 QOA_ATTRIBUTES_NAME = "qoa4ml-attributes"
@@ -12,14 +12,16 @@ class MetaEnum(EnumMeta):
         source = inspect.getsource(cls)
         docstrings = source.split('"""')[-2::-2]
 
-        for member_name, doc_str in zip(reversed(cls._member_names_), docstrings):
+        for member_name, doc_str in zip(
+            reversed(cls._member_names_), docstrings, strict=False
+        ):
             enum_member = getattr(cls, member_name)
             enum_member.__doc__ = doc_str.strip()
 
         return cls
 
 
-class QoAttribute(str, Enum, metaclass=MetaEnum):
+class QoAttribute(StrEnum, metaclass=MetaEnum):
     pass
 
 

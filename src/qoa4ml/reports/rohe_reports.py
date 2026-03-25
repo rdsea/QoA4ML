@@ -1,6 +1,6 @@
 import copy
 import time
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 from qoa4ml.config.configs import ClientInfo
@@ -369,7 +369,7 @@ class RoheReport(AbstractReport):
             self.inference_report.ml_specific.end_point.metrics.append(metric)
 
     def generate_report(
-        self, reset: bool = True, corr_id: Optional[str] = None
+        self, reset: bool = True, corr_id: str | None = None
     ) -> RoheReportModel:
         """
         Generate the report and optionally reset the current report state.

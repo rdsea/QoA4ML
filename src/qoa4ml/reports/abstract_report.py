@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from qoa4ml.lang.common_models import Metric
 from qoa4ml.reports.ml_report_model import BaseReport
@@ -16,7 +15,7 @@ class AbstractReport(ABC):
 
     @abstractmethod
     def generate_report(
-        self, reset: bool = True, corr_id: Optional[str] = None
+        self, reset: bool = True, corr_id: str | None = None
     ) -> BaseReport:
         pass
 

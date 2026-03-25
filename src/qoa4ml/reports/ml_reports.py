@@ -1,6 +1,7 @@
 import copy
 import time
-from typing import Any, Optional
+import warnings
+from typing import Any
 from uuid import UUID, uuid4
 
 from qoa4ml.config.configs import ClientInfo
@@ -194,8 +195,10 @@ class MLReport(AbstractReport):
         instance_id = UUID(self.client_config.instance_id)
 
         if instance_id in self.report.ml_inference:
-            raise RuntimeWarning(
-                "Inference existed, will override the existing inference"
+            warnings.warn(
+                "Inference existed, will override the existing inference",
+                RuntimeWarning,
+                stacklevel=2,
             )
 
         self.report.ml_inference[instance_id] = InferenceInstance(
@@ -227,7 +230,7 @@ class MLReport(AbstractReport):
             )
 
     def generate_report(
-        self, reset: bool = True, corr_id: Optional[str] = None
+        self, reset: bool = True, corr_id: str | None = None
     ) -> BaseReport:
         """
         Generate the report and optionally reset the current report state.

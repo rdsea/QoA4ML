@@ -1,10 +1,9 @@
-import logging
 import pickle
 import socket
 import time
-from typing import Optional
 
 from ..config.configs import SocketConnectorConfig
+from ..utils.logger import qoa_logger
 from .base_connector import BaseConnector
 
 
@@ -45,7 +44,7 @@ class SocketConnector(BaseConnector):
         self.host = config.host
         self.port = config.port
 
-    def send_report(self, body_message: str, log_path: Optional[str] = None) -> None:
+    def send_report(self, body_message: str, log_path: str | None = None) -> None:
         """
         Send a serialized message over the socket and optionally log the round-trip time.
 
@@ -79,4 +78,4 @@ class SocketConnector(BaseConnector):
                 with open(log_path, "a", encoding="utf-8") as file:
                     file.write(f"{(time.time() - start) * 1000:.2f} ms\n")
         except ConnectionRefusedError:
-            logging.error("Connection to aggregator refused")
+            qoa_logger.error("Connection to aggregator refused")

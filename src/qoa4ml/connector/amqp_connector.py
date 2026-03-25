@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 
 import pika
 
@@ -8,7 +7,7 @@ from .base_connector import BaseConnector
 
 
 class AmqpConnector(BaseConnector):
-    # Init an amqp client handling the connection to amqp servier
+    # Init an amqp client handling the connection to amqp server
     def __init__(
         self,
         config: AMQPConnectorConfig,
@@ -90,8 +89,8 @@ class AmqpConnector(BaseConnector):
     def send_report(
         self,
         body_message: str,
-        corr_id: Optional[str] = None,
-        routing_key: Optional[str] = None,
+        corr_id: str | None = None,
+        routing_key: str | None = None,
         expiration: int = 1000,
     ) -> None:
         """
