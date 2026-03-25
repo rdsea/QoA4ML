@@ -19,4 +19,5 @@ class EmbeddedDatabase:
     def get_latest_timestamp(self):
         time_query = TimeQuery()
         timestamp = datetime.fromtimestamp(math.floor(time.time()))
-        return self.db.search(time_query >= timestamp)
+        results = self.db.search(time_query <= timestamp)
+        return results[-1] if results else None
