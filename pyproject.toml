@@ -42,13 +42,11 @@ dependencies = [
   "PyYAML>=6.0.1",
   "requests>=2.31.0",
   "fastapi>=0.110.2",
-  "flatten_dict>=0.4.2",
-  "pydantic>=2.7.4,<2.8",
+  "pydantic>=2.7.4,<3",
   "tinyflux>=1.0.0",
   "uvicorn>=0.29.0",
-  "docker==7.1.0",
+  "docker>=7.1.0,<8",
   "numpy>=1.26.0",
-  "lazy-import>=0.2.2",
   "devtools>=0.12.0",
 ]
 
@@ -91,8 +89,12 @@ dev = [
   "mypy",
   "pytest>=8.3.2",
   "pytest-sugar>=1.0.0",
+  "pytest-cov>=6.0.0",
 ]
 
+
+[tool.ruff]
+exclude = ["example/bts/"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -102,7 +104,7 @@ docstring-code-line-length = 10
 convention = "pep257" # Accepts: "google", "numpy", or "pep257".
 
 [tool.ruff.lint]
-exclude = ["src/qoa4ml/utils/pynvml_forked.py"]
+exclude = ["src/qoa4ml/utils/pynvml_forked.py", "example/bts/"]
 select = [
   "F",   # Pyflakes
   "E",   # Pycode styles
@@ -134,15 +136,6 @@ warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
 disable_error_code = [
-  "assignment",
-  "arg-type",
-  "return-value",
-  "index",
-  "attr-defined",
-  "no-redef",
-  "dict-item",
-  "list-item",
-  "var-annotated",
   "import-untyped",
 ]
 
@@ -150,5 +143,18 @@ disable_error_code = [
 markers = [
   "requires_docker: tests that require a running Docker daemon",
   "requires_gpu: tests that require an NVIDIA GPU",
+]
+
+[tool.coverage.run]
+source = ["qoa4ml"]
+omit = ["src/qoa4ml/utils/pynvml_forked.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.",
 ]
 

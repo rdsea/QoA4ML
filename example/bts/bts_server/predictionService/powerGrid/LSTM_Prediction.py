@@ -72,7 +72,7 @@ class LSTM_Prediction_Service:
 
         ####################### SEND THE QOA4ML REPORT #########################
         # Response_time is already report by calling timer 2nd time
-        response_time = self.qoa_client.timer()
+        self.qoa_client.timer()
         # Estimate data accuracy using qoa4ml library
         data_accuracy = qoa_probes.eva_none(pas_series)
         # Add data accuracy to QoA report

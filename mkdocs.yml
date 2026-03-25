@@ -28,6 +28,7 @@ theme:
 
 nav:
   - QoA4ML: index.md
+  - Metrics: metrics.md
   - Code Reference: reference/
 
 plugins:

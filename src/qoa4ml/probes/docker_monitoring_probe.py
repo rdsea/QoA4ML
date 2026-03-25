@@ -58,7 +58,7 @@ class DockerMonitoringProbe(Probe):
             Information about the client.
         """
         super().__init__(config, connector, client_info)
-        self.config = config
+        self.config: DockerProbeConfig = config
         if self.config.require_register:
             self.obs_service_url = self.config.obs_service_url
         self.docker_client = docker.from_env()
@@ -80,6 +80,7 @@ class DockerMonitoringProbe(Probe):
         """
         try:
             reports = get_docker_stats(self.docker_client, self.config.container_list)
+            assert self.client_info is not None
             docker_report = DockerReport(
                 metadata=self.client_info,
                 timestamp=time.time(),

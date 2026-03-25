@@ -1,9 +1,14 @@
+import logging
+import time
 import uuid
 
 import pika
+import pika.exceptions
 
 from ..config.configs import AMQPConnectorConfig
 from .base_connector import BaseConnector
+
+logger = logging.getLogger(__name__)
 
 
 class AmqpConnector(BaseConnector):
@@ -71,19 +76,15 @@ class AmqpConnector(BaseConnector):
         )
 
     def create_connection(self):
+        heartbeat = 0 if self.health_check_disable else 600
         if "amqps://" in self.config.end_point:
             parameters = pika.URLParameters(self.config.end_point)
-            if self.health_check_disable:
-                parameters.heartbeat = 0
+            parameters.heartbeat = heartbeat
         else:
-            if self.health_check_disable:
-                parameters = pika.ConnectionParameters(
-                    host=self.config.end_point, heartbeat=0
-                )
-            else:
-                parameters = pika.ConnectionParameters(host=self.config.end_point)
+            parameters = pika.ConnectionParameters(
+                host=self.config.end_point, heartbeat=heartbeat
+            )
         self.out_connection = pika.BlockingConnection(parameters)
-
         self.out_channel = self.out_connection.channel()
 
     def send_report(
@@ -113,20 +114,44 @@ class AmqpConnector(BaseConnector):
         - If `routing_key` is not provided, the default `out_routing_key` will be used.
         """
 
-        self.create_connection()
         if corr_id is None:
             corr_id = str(uuid.uuid4())
         if routing_key is None:
             routing_key = self.out_routing_key
+
+        self._ensure_connection()
         self.sub_properties = pika.BasicProperties(
             correlation_id=corr_id, expiration=str(expiration)
         )
-        self.out_channel.basic_publish(
-            exchange=self.exchange_name,
-            routing_key=routing_key,
-            properties=self.sub_properties,
-            body=body_message,
-        )
+        try:
+            self.out_channel.basic_publish(
+                exchange=self.exchange_name,
+                routing_key=routing_key,
+                properties=self.sub_properties,
+                body=body_message,
+            )
+        except (
+            pika.exceptions.AMQPConnectionError,
+            pika.exceptions.AMQPChannelError,
+        ):
+            logger.warning("AMQP publish failed, reconnecting and retrying")
+            time.sleep(0.5)
+            self.create_connection()
+            self.out_channel.exchange_declare(
+                exchange=self.exchange_name, exchange_type=self.exchange_type
+            )
+            try:
+                self.out_channel.basic_publish(
+                    exchange=self.exchange_name,
+                    routing_key=routing_key,
+                    properties=self.sub_properties,
+                    body=body_message,
+                )
+            except (
+                pika.exceptions.AMQPConnectionError,
+                pika.exceptions.AMQPChannelError,
+            ):
+                logger.error("AMQP publish failed after retry, dropping message")
 
     def get(self) -> AMQPConnectorConfig:
         """
@@ -139,8 +164,20 @@ class AmqpConnector(BaseConnector):
         """
         return self.config
 
+    def _ensure_connection(self):
+        if self.out_connection.is_closed or self.out_channel.is_closed:
+            logger.info("AMQP connection lost, reconnecting")
+            time.sleep(0.5)
+            self.create_connection()
+            self.out_channel.exchange_declare(
+                exchange=self.exchange_name, exchange_type=self.exchange_type
+            )
+
     def check_connection(self) -> bool:
-        return self.out_channel.is_open
+        return self.out_connection.is_open and self.out_channel.is_open
 
     def reconnect(self):
         self.create_connection()
+        self.out_channel.exchange_declare(
+            exchange=self.exchange_name, exchange_type=self.exchange_type
+        )

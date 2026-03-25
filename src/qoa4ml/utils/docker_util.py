@@ -16,7 +16,7 @@ BYTES_TO_MB = 1024.0 * 1024.0
 async def get_container_stats(
     container: Container,
 ) -> DockerContainerReport:
-    container_stats = {}
+    container_stats: dict[str, dict] = {}
     container_stats["cpu"] = {}
     container_stats["mem"] = {}
 

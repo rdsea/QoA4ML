@@ -71,12 +71,12 @@ class AmqpCollector(BaseCollector):
         self.in_routing_key = configuration.in_routing_key
 
         if "amqps://" in configuration.end_point:
-            self.in_connection = pika.BlockingConnection(
-                pika.URLParameters(configuration.end_point)
-            )
+            parameters = pika.URLParameters(configuration.end_point)
+            parameters.heartbeat = 600
+            self.in_connection = pika.BlockingConnection(parameters)
         else:
             self.in_connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host=configuration.end_point)
+                pika.ConnectionParameters(host=configuration.end_point, heartbeat=600)
             )
 
         self.in_channel = self.in_connection.channel()

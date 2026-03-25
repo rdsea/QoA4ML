@@ -61,6 +61,6 @@ Another new engine is currently developed under [rohe_ObService](observability/r
 
 ## References
 
-- Hong-Linh Truong, Minh-Tri Nguyen, ["QoA4ML -A Framework for Supporting Contracts in Machine Learning Services"](https://research.aalto.fi/files/65786264/main.pdf), [The 2021 IEEE International Conference on Web Services (ICWS 2021)](https://conferences.computer.org/icws/2021/), to appear.
-- Minh-Tri Nguyen, Hong-Linh Truong [Demonstration Paper: Monitoring Machine Learning Contracts with QoA4ML](https://research.aalto.fi/files/56621517/main.pdf), Companion of the 2021 ACM/SPEC International Conference on Performance Engineering (ICPE'21), Apr. 19-23, 2021
-- https://www.researchgate.net/publication/341762862_R3E_-An_Approach_to_Robustness_Reliability_Resilience_and_Elasticity_Engineering_for_End-to-End_Machine_Learning_Systems
+- Hong-Linh Truong, Minh-Tri Nguyen, ["QoA4ML - A Framework for Supporting Contracts in Machine Learning Services"](https://doi.org/10.1109/ICWS53863.2021.00068), The 2021 IEEE International Conference on Web Services (ICWS 2021).
+- Minh-Tri Nguyen, Hong-Linh Truong, ["Demonstration Paper: Monitoring Machine Learning Contracts with QoA4ML"](https://doi.org/10.1145/3447545.3451190), Companion of the 2021 ACM/SPEC International Conference on Performance Engineering (ICPE'21), Apr. 19-23, 2021.
+- Hong-Linh Truong, ["R3E - An Approach to Robustness, Reliability, Resilience and Elasticity Engineering for End-to-End Machine Learning Systems"](https://doi.org/10.1007/978-3-030-44769-4_1), 2020.

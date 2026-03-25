@@ -7,7 +7,7 @@ from threading import Thread
 from typing import Any, TypeVar
 
 import requests
-from pydantic import create_model
+from pydantic import BaseModel, create_model
 
 # from .connector.mqtt_connector import Mqtt_Connector
 from qoa4ml.config.configs import (
@@ -49,11 +49,13 @@ headers = {"Content-Type": "application/json"}
 # NOTE: T must be a subtype of AbstractReport
 T = TypeVar("T", bound=AbstractReport)
 
+_DEFAULT_REPORT_CLS: type[Any] = MLReport
+
 
 class QoaClient[T: AbstractReport]:
     def __init__(
         self,
-        report_cls: type[T] = MLReport,
+        report_cls: type[T] = _DEFAULT_REPORT_CLS,
         config_dict: dict | None = None,
         config_path: str | None = None,
         registration_url: str | None = None,
@@ -93,13 +95,13 @@ class QoaClient[T: AbstractReport]:
         self.process_monitor_flag = 0
         self.inference_flag = False
 
-        self.instance_id = os.environ.get("INSTANCE_ID")
+        self.instance_id: str | None = os.environ.get("INSTANCE_ID")
         if self.instance_id:
             qoa_logger.info("Setting instance_id with INSTANCE_ID")
-            self.instance_id = uuid.UUID(self.instance_id)
+            self.instance_id = str(uuid.UUID(self.instance_id))
         elif self.configuration.client.instance_id:
             qoa_logger.info("Setting instance_id with client.instance_id")
-            self.instance_id = uuid.UUID(self.configuration.client.instance_id)
+            self.instance_id = str(uuid.UUID(self.configuration.client.instance_id))
         else:
             self.instance_id = str(uuid.uuid4())
 
@@ -120,6 +122,8 @@ class QoaClient[T: AbstractReport]:
                 if registration_url:
                     registration_data = self.registration(registration_url)
                 else:
+                    if self.configuration.registration_url is None:
+                        raise ValueError("No registration URL configured")
                     registration_data = self.registration(
                         self.configuration.registration_url
                     )
@@ -261,13 +265,13 @@ class QoaClient[T: AbstractReport]:
 
         raise RuntimeError("Connector config is not of correct type")
 
-    def get_client_config(self) -> ClientConfig:
+    def get_client_config(self) -> ClientInfo:
         """
         Get the current client configuration.
 
         Returns
         -------
-        ClientConfig
+        ClientInfo
             The client's current configuration settings.
         """
         return self.client_config
@@ -328,11 +332,14 @@ class QoaClient[T: AbstractReport]:
         else:
             raise RuntimeError("Report type not supported")
 
-        self.qoa_report.observe_metric(
-            report_type,
-            self.stage_id,
-            Metric(metric_name=metric_name, records=[value], description=description),
-        )
+        with self.lock:
+            self.qoa_report.observe_metric(
+                report_type,
+                self.stage_id,
+                Metric(
+                    metric_name=metric_name, records=[value], description=description
+                ),
+            )
 
     def timer(self) -> dict:
         """
@@ -348,20 +355,19 @@ class QoaClient[T: AbstractReport]:
         - When called for the first time, it starts the timer.
         - When called again, it stops the timer and records the response time as a metric.
         """
-        if self.timer_flag is False:
-            self.timer_flag = True
-            self.timerStart = time.time()
-            return {}
-        else:
-            self.timer_flag = False
-            response_time = {
-                "startTime": self.timerStart,
-                "responseTime": time.time() - self.timerStart,
-            }
-            self.observe_metric(
-                ServiceQualityEnum.RESPONSE_TIME, response_time, category=0
-            )
-            return response_time
+        with self.lock:
+            if self.timer_flag is False:
+                self.timer_flag = True
+                self.timerStart = time.time()
+                return {}
+            else:
+                self.timer_flag = False
+                response_time = {
+                    "startTime": self.timerStart,
+                    "responseTime": time.time() - self.timerStart,
+                }
+        self.observe_metric(ServiceQualityEnum.RESPONSE_TIME, response_time, category=0)
+        return response_time
 
     def import_previous_report(self, reports: dict | list[dict]) -> None:
         """
@@ -372,11 +378,12 @@ class QoaClient[T: AbstractReport]:
         reports : Union[dict, list[dict]]
             A single report or a list of reports to be processed.
         """
-        if isinstance(reports, list):
-            for report in reports:
-                self.qoa_report.process_previous_report(report)
-        else:
-            self.qoa_report.process_previous_report(reports)
+        with self.lock:
+            if isinstance(reports, list):
+                for report in reports:
+                    self.qoa_report.process_previous_report(report)
+            else:
+                self.qoa_report.process_previous_report(reports)
 
     def asyn_report(self, body_mess: str, connectors: list | None = None) -> None:
         """
@@ -422,7 +429,7 @@ class QoaClient[T: AbstractReport]:
         submit: bool = False,
         reset: bool = True,
         corr_id: str | None = None,
-    ) -> str:
+    ) -> dict[str, Any]:
         """
         Generate a report and optionally submit it through the default connector.
 
@@ -441,28 +448,30 @@ class QoaClient[T: AbstractReport]:
 
         Returns
         -------
-        str
-            The JSON-encoded report.
+        dict[str, Any]
+            The report as a dictionary.
 
         Notes
         -----
         The method will create a report based on the current state if none is provided.
         If `submit` is True, the report will be sent through the default or specified connectors.
         """
-        if report is None:
-            return_report = self.qoa_report.generate_report(reset, corr_id=corr_id)
-        else:
-            user_defined_report_model = create_model(
-                "UserDefinedReportModel",
-                metadata=(dict, ...),
-                timestamp=(float, ...),
-                report=(dict, ...),
-            )
-            return_report = user_defined_report_model(
-                report=report,
-                metadata=copy.deepcopy(self.client_config.__dict__),
-                timestamp=time.time(),
-            )
+        with self.lock:
+            return_report: BaseModel
+            if report is None:
+                return_report = self.qoa_report.generate_report(reset, corr_id=corr_id)
+            else:
+                user_defined_report_model = create_model(
+                    "UserDefinedReportModel",
+                    metadata=(dict, ...),
+                    timestamp=(float, ...),
+                    report=(dict, ...),
+                )
+                return_report = user_defined_report_model(
+                    report=report,
+                    metadata=copy.deepcopy(self.client_config.__dict__),
+                    timestamp=time.time(),
+                )
 
         if submit:
             if self.default_connector is not None:
@@ -528,7 +537,8 @@ class QoaClient[T: AbstractReport]:
         -----
         This method is used to record predictions or inference results for later analysis.
         """
-        self.qoa_report.observe_inference(inference_value)
+        with self.lock:
+            self.qoa_report.observe_inference(inference_value)
 
     def observe_inference_metric(
         self,
@@ -550,7 +560,8 @@ class QoaClient[T: AbstractReport]:
         This method can be used to log performance metrics, evaluation scores, etc. during inference.
         """
         metric = Metric(metric_name=metric_name, records=[value])
-        self.qoa_report.observe_inference_metric(metric)
+        with self.lock:
+            self.qoa_report.observe_inference_metric(metric)
 
     def __str__(self) -> str:
         """

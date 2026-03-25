@@ -2,15 +2,14 @@ import json
 import logging
 import os
 import time
-from typing import TYPE_CHECKING
 
-import lazy_import
 import psutil
 
 from qoa4ml.config.configs import ClientInfo, ProcessProbeConfig
 from qoa4ml.connector.base_connector import BaseConnector
 from qoa4ml.lang.datamodel_enum import EnvironmentEnum
 from qoa4ml.probes.probe import Probe
+from qoa4ml.reports import resources_report_model
 from qoa4ml.utils.qoa_utils import (
     convert_to_mbyte,
     get_process_allowed_cpus,
@@ -19,12 +18,6 @@ from qoa4ml.utils.qoa_utils import (
     report_proc_mem,
 )
 
-if TYPE_CHECKING:
-    from ..reports import resources_report_model
-else:
-    resources_report_model = lazy_import.lazy_module(
-        "qoa4ml.reports.resources_report_model"
-    )
 logging.basicConfig(
     format="%(asctime)s:%(levelname)s -- %(message)s", level=logging.INFO
 )
@@ -97,6 +90,7 @@ class ProcessMonitoringProbe(Probe):
         if self.config.require_register:
             self.obs_service_url = self.config.obs_service_url
 
+        self.metadata: dict[str, str] | resources_report_model.ProcessMetadata
         if self.environment == EnvironmentEnum.hpc:
             self.metadata = {"pid": str(self.pid), "user": self.process.username()}
         else:
@@ -169,6 +163,7 @@ class ProcessMonitoringProbe(Probe):
                 },
             }
         else:
+            assert isinstance(self.metadata, resources_report_model.ProcessMetadata)
             report = resources_report_model.ProcessReport(
                 metadata=self.metadata,
                 timestamp=round(timestamp),

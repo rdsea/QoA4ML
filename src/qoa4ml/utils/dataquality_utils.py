@@ -221,9 +221,9 @@ def eva_none(data: np.ndarray | pd.DataFrame):
         if isinstance(data, np.ndarray):
             valid_count = np.count_nonzero(~np.isnan(data))
             none_count = np.count_nonzero(np.isnan(data))
-            results = {}
-            results[DataQualityEnum.TOTAL_VALID] = valid_count
-            results[DataQualityEnum.TOTAL_NONE] = none_count
+            results: dict[DataQualityEnum, float] = {}
+            results[DataQualityEnum.TOTAL_VALID] = float(valid_count)
+            results[DataQualityEnum.TOTAL_NONE] = float(none_count)
             results[DataQualityEnum.NONE_RATIO] = (
                 100 * valid_count / (valid_count + none_count)
             )
