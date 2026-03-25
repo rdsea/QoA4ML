@@ -122,7 +122,8 @@ class QoaClient[T: AbstractReport]:
                 if registration_url:
                     registration_data = self.registration(registration_url)
                 else:
-                    assert self.configuration.registration_url is not None
+                    if self.configuration.registration_url is None:
+                        raise ValueError("No registration URL configured")
                     registration_data = self.registration(
                         self.configuration.registration_url
                     )

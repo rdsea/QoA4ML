@@ -1,4 +1,3 @@
-import json
 import socket
 from collections.abc import Callable
 
@@ -82,6 +81,6 @@ class SocketCollector(BaseCollector):
                     break
                 data += packet
 
-            report = json.loads(data.decode("utf-8"))
+            report = data.decode("utf-8")
             self.process_report(report)
             client_socket.close()

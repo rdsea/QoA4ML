@@ -103,7 +103,7 @@ class TestSocketCollectorStartCollecting:
 
         collector.start_collecting()
 
-        mock_process_report.assert_called_once_with(original_data)
+        mock_process_report.assert_called_once_with(json.dumps(original_data))
         mock_client_socket.close.assert_called_once()
 
     @patch("qoa4ml.collector.socket_collector.socket")
@@ -143,8 +143,8 @@ class TestSocketCollectorStartCollecting:
         collector.start_collecting()
 
         assert mock_process_report.call_count == 2
-        mock_process_report.assert_any_call("message_1")
-        mock_process_report.assert_any_call("message_2")
+        mock_process_report.assert_any_call(json.dumps("message_1"))
+        mock_process_report.assert_any_call(json.dumps("message_2"))
 
     def test_execution_flag_defaults_true(
         self, socket_collector_config, mock_process_report

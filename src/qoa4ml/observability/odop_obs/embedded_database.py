@@ -1,4 +1,3 @@
-import math
 import time
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +17,6 @@ class EmbeddedDatabase:
 
     def get_latest_timestamp(self):
         time_query = TimeQuery()
-        timestamp = datetime.fromtimestamp(math.floor(time.time()))
+        timestamp = datetime.fromtimestamp(time.time())
         results = self.db.search(time_query <= timestamp)
-        return results[-1] if results else None
+        return results[-1:] if results else []

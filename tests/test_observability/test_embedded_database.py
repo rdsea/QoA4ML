@@ -80,14 +80,15 @@ class TestInsert:
 
 
 class TestGetLatestTimestamp:
-    def test_empty_database_returns_none(self, db):
+    def test_empty_database_returns_empty_list(self, db):
         result = db.get_latest_timestamp()
-        assert result is None
+        assert result == []
 
-    def test_returns_entry_when_data_within_utc_range(self, db):
+    def test_returns_list_when_data_within_range(self, db):
         utc_now = datetime.now(UTC)
         ts = utc_now.timestamp() - 5
         db.insert(timestamp=ts, tags={"type": "test"}, fields={"val": 42.0})
         result = db.get_latest_timestamp()
-        if result is not None:
-            assert result.fields["val"] == 42.0
+        assert isinstance(result, list)
+        if len(result) > 0:
+            assert result[0].fields["val"] == 42.0
