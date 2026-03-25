@@ -80,7 +80,7 @@ class MlQualityReport(BaseModel):
 
 
 class GeneralMlInferenceReport(MlQualityReport, BaseReport):
-    ml_inference: dict[str, InferenceInstance] = {}
+    ml_inference: dict[UUID, InferenceInstance] = {}
 
 
 class EnsembleInferenceReport(MlQualityReport):
