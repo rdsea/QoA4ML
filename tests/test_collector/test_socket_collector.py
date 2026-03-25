@@ -1,4 +1,4 @@
-import pickle
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -49,7 +49,7 @@ class TestSocketCollectorStartCollecting:
 
         # Make accept raise after first iteration to stop the loop
         mock_client_socket = MagicMock()
-        test_data = pickle.dumps({"key": "value"})
+        test_data = json.dumps({"key": "value"}).encode("utf-8")
         mock_client_socket.recv.side_effect = [test_data, b""]
         mock_server_socket.accept.side_effect = [
             (mock_client_socket, ("127.0.0.1", 12345)),
@@ -85,7 +85,7 @@ class TestSocketCollectorStartCollecting:
         collector = SocketCollector(socket_collector_config, mock_process_report)
 
         original_data = {"metric": "cpu", "value": 95.5}
-        serialized = pickle.dumps(original_data)
+        serialized = json.dumps(original_data).encode("utf-8")
 
         mock_client_socket = MagicMock()
         # Return data in chunks, then empty bytes to signal end
@@ -117,8 +117,8 @@ class TestSocketCollectorStartCollecting:
 
         collector = SocketCollector(socket_collector_config, mock_process_report)
 
-        msg1 = pickle.dumps("message_1")
-        msg2 = pickle.dumps("message_2")
+        msg1 = json.dumps("message_1").encode("utf-8")
+        msg2 = json.dumps("message_2").encode("utf-8")
 
         mock_client1 = MagicMock()
         mock_client1.recv.side_effect = [msg1, b""]

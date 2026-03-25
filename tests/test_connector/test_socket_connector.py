@@ -1,4 +1,3 @@
-import pickle
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -35,7 +34,7 @@ class TestSocketConnectorSendReport:
         mock_socket_module.socket.assert_called_once_with(2, 1)
         mock_sock.connect.assert_called_once_with(("127.0.0.1", 9999))
 
-        expected_data = pickle.dumps("hello world")
+        expected_data = b"hello world"
         mock_sock.sendall.assert_called_once_with(expected_data)
         mock_sock.close.assert_called_once()
 
@@ -104,5 +103,5 @@ class TestSocketConnectorSendReport:
         data = '{"key": "value", "number": 42}'
         connector.send_report(data)
 
-        expected = pickle.dumps(data)
+        expected = data.encode("utf-8")
         mock_sock.sendall.assert_called_once_with(expected)

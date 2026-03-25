@@ -1,4 +1,5 @@
 import logging
+import time
 import uuid
 
 import pika
@@ -134,16 +135,23 @@ class AmqpConnector(BaseConnector):
             pika.exceptions.AMQPChannelError,
         ):
             logger.warning("AMQP publish failed, reconnecting and retrying")
+            time.sleep(0.5)
             self.create_connection()
             self.out_channel.exchange_declare(
                 exchange=self.exchange_name, exchange_type=self.exchange_type
             )
-            self.out_channel.basic_publish(
-                exchange=self.exchange_name,
-                routing_key=routing_key,
-                properties=self.sub_properties,
-                body=body_message,
-            )
+            try:
+                self.out_channel.basic_publish(
+                    exchange=self.exchange_name,
+                    routing_key=routing_key,
+                    properties=self.sub_properties,
+                    body=body_message,
+                )
+            except (
+                pika.exceptions.AMQPConnectionError,
+                pika.exceptions.AMQPChannelError,
+            ):
+                logger.error("AMQP publish failed after retry, dropping message")
 
     def get(self) -> AMQPConnectorConfig:
         """
@@ -159,6 +167,7 @@ class AmqpConnector(BaseConnector):
     def _ensure_connection(self):
         if self.out_connection.is_closed or self.out_channel.is_closed:
             logger.info("AMQP connection lost, reconnecting")
+            time.sleep(0.5)
             self.create_connection()
             self.out_channel.exchange_declare(
                 exchange=self.exchange_name, exchange_type=self.exchange_type

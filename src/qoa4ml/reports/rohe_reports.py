@@ -96,7 +96,7 @@ class RoheReport(AbstractReport):
         self.inference_report = EnsembleInferenceReport()
         self.execution_graph = ExecutionGraph(linked_list={})
         self.report = RoheReportModel()
-        self.previous_microservice_instance = []
+        self.previous_microservice_instance: list[MicroserviceInstance] = []
         self.execution_instance = MicroserviceInstance(
             id=UUID(self.client_config.instance_id),
             name=self.client_config.name,
@@ -118,6 +118,8 @@ class RoheReport(AbstractReport):
         - The imported report updates the current inference report and execution graph.
         """
         report = load_config(file_path)
+        if report is None:
+            raise ValueError(f"Failed to load config from {file_path}")
         self.inference_report = EnsembleInferenceReport(**report["inference_report"])
         self.execution_graph = ExecutionGraph(**report["execution_graph"])
         self.report = RoheReportModel(
@@ -199,12 +201,12 @@ class RoheReport(AbstractReport):
                     instance_id=self.execution_instance.id,
                 )
                 self.inference_report.ml_specific.end_point = end_point
+                prev_end_point = previous_report.inference_report.ml_specific.end_point
+                previous_list = [prev_end_point] if prev_end_point is not None else []
                 self.inference_report.ml_specific.linked_list[end_point.instance_id] = (
                     LinkedInstance(
                         instance=end_point,
-                        previous=[
-                            previous_report.inference_report.ml_specific.end_point
-                        ],
+                        previous=previous_list,
                     )
                 )
         else:
@@ -219,9 +221,10 @@ class RoheReport(AbstractReport):
                 previous_end_point = (
                     previous_report.inference_report.ml_specific.end_point
                 )
-                self.inference_report.ml_specific.linked_list[
-                    current_end_point.instance_id
-                ].previous.append(previous_end_point)
+                if previous_end_point is not None:
+                    self.inference_report.ml_specific.linked_list[
+                        current_end_point.instance_id
+                    ].previous.append(previous_end_point)
 
         if not self.execution_graph:
             self.execution_graph = previous_report.execution_graph
@@ -230,9 +233,10 @@ class RoheReport(AbstractReport):
                 previous_report.execution_graph.linked_list
             )
 
-        self.previous_microservice_instance.append(
-            previous_report.execution_graph.end_point
-        )
+        if previous_report.execution_graph.end_point is not None:
+            self.previous_microservice_instance.append(
+                previous_report.execution_graph.end_point
+            )
         self.report = RoheReportModel(
             inference_report=self.inference_report,
             execution_graph=self.execution_graph,

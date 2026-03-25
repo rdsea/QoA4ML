@@ -97,6 +97,7 @@ class ProcessMonitoringProbe(Probe):
         if self.config.require_register:
             self.obs_service_url = self.config.obs_service_url
 
+        self.metadata: dict[str, str] | resources_report_model.ProcessMetadata
         if self.environment == EnvironmentEnum.hpc:
             self.metadata = {"pid": str(self.pid), "user": self.process.username()}
         else:
@@ -169,6 +170,7 @@ class ProcessMonitoringProbe(Probe):
                 },
             }
         else:
+            assert isinstance(self.metadata, resources_report_model.ProcessMetadata)
             report = resources_report_model.ProcessReport(
                 metadata=self.metadata,
                 timestamp=round(timestamp),

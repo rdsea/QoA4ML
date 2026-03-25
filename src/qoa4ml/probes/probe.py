@@ -25,7 +25,8 @@ class Probe(ABC):
         self.log_latency_flag = self.config.log_latency_flag
         if self.log_latency_flag:
             self.latency_logging_path = config.latency_logging_path
-            make_folder(self.latency_logging_path)
+            if self.latency_logging_path is not None:
+                make_folder(self.latency_logging_path)
         self.max_latency = 0.0
         self.connector = connector
 

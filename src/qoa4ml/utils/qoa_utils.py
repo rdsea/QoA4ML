@@ -16,6 +16,81 @@ import yaml
 
 from qoa4ml.utils.logger import qoa_logger
 
+_REDUCER_MAP = {
+    "dot": ".",
+    "underscore": "_",
+    "path": "/",
+}
+
+
+def _resolve_sep(sep: str) -> str:
+    """Resolve a reducer name (e.g. 'dot') to its separator character."""
+    return _REDUCER_MAP.get(sep, sep)
+
+
+def flatten(d: dict, sep: str = ".", parent_key: str = "") -> dict:
+    """
+    Flatten a nested dictionary into a single-level dictionary with
+    keys joined by the given separator.
+
+    Parameters
+    ----------
+    d : dict
+        The nested dictionary to flatten.
+    sep : str, optional
+        The separator used to join keys. Accepts reducer names such as
+        "dot", "underscore", "path", or a literal separator character.
+        Default is ".".
+    parent_key : str, optional
+        The prefix for keys (used in recursion), default is "".
+
+    Returns
+    -------
+    dict
+        A flattened dictionary.
+    """
+    resolved = _resolve_sep(sep)
+    items: list[tuple[str, Any]] = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{resolved}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten(v, sep=sep, parent_key=new_key).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
+def unflatten(d: dict, sep: str = ".") -> dict:
+    """
+    Unflatten a single-level dictionary (with keys containing the separator)
+    back into a nested dictionary.
+
+    Parameters
+    ----------
+    d : dict
+        The flat dictionary to unflatten.
+    sep : str, optional
+        The separator used in the flat keys. Accepts reducer names such as
+        "dot", "underscore", "path", or a literal separator character.
+        Default is ".".
+
+    Returns
+    -------
+    dict
+        A nested dictionary.
+    """
+    resolved = _resolve_sep(sep)
+    result: dict = {}
+    for key, value in d.items():
+        parts = key.split(resolved)
+        current = result
+        for part in parts[:-1]:
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        current[parts[-1]] = value
+    return result
+
 
 def make_folder(temp_path: str) -> bool:
     """
@@ -340,7 +415,7 @@ def get_proc_cpu(pid: int | None = None) -> dict:
         pid = os.getpid()
     process = psutil.Process(pid)
     child_list = process.children()
-    info = {}
+    info: dict[int | str, dict] = {}
     info[pid] = report_proc_cpu(process)
 
     for child in child_list:
@@ -389,7 +464,7 @@ def get_proc_mem(pid: int | None = None) -> dict:
         pid = os.getpid()
     process = psutil.Process(pid)
     child_list = process.children()
-    info = {}
+    info: dict[int | str, dict] = {}
     info[pid] = report_proc_mem(process)
 
     for child in child_list:
@@ -480,8 +555,8 @@ def system_report(
     - Logs errors if any occur during data collection or report sending.
     - Sleeps for the specified interval between reports.
     """
-    report = {}
-    last_net_value = {"sent": 0, "receive": 0}
+    report: dict[str, Any] = {}
+    last_net_value: dict[str, float] = {"sent": 0, "receive": 0}
     while sys_monitor_flag:
         try:
             report["sys_cpu_stats"] = get_sys_cpu()
@@ -493,8 +568,8 @@ def system_report(
             qoa_logger.exception("Error in report memory stat")
         try:
             report["sys_net_stats"] = get_sys_net()
-            sent = 0
-            receive = 0
+            sent: float = 0
+            receive: float = 0
             if to_mb:
                 sent = convert_to_mbyte(psutil.net_io_counters().bytes_sent)
                 receive = convert_to_mbyte(psutil.net_io_counters().bytes_recv)
@@ -776,7 +851,7 @@ def get_process_allowed_cpus() -> list[int]:
     - Uses the call process's PID (0) to get the CPU affinity.
     """
     pid = 0
-    affinity = os.sched_getaffinity(pid)
+    affinity = os.sched_getaffinity(pid)  # type: ignore[attr-defined]  # Linux-only API
     return list(affinity)
 
 
@@ -813,7 +888,7 @@ def get_process_allowed_memory() -> float | None:
                             memory_limit_int = int(memory_limit_str)
                             return memory_limit_int / number_of_tasks
                         except ValueError:
-                            return memory_limit_str
+                            return None
             return None
     else:
         with open("/proc/self/cgroup") as file:
@@ -831,5 +906,5 @@ def get_process_allowed_memory() -> float | None:
                         memory_limit_int = int(memory_limit_str)
                         return memory_limit_int / number_of_tasks
                     except ValueError:
-                        return memory_limit_str
+                        return None
             return None

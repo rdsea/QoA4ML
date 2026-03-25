@@ -1,4 +1,4 @@
-import pickle
+import json
 import socket
 from collections.abc import Callable
 
@@ -66,7 +66,7 @@ class SocketCollector(BaseCollector):
         Notes
         -----
         - This method starts a TCP socket server that listens for incoming connections.
-        - Data received from clients is deserialized using pickle and then processed using the `process_report` function.
+        - Data received from clients is decoded from UTF-8 and parsed as JSON, then processed using the `process_report` function.
         - The server runs indefinitely until the `execution_flag` is set to False.
         """
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -82,6 +82,6 @@ class SocketCollector(BaseCollector):
                     break
                 data += packet
 
-            report = pickle.loads(data)
+            report = json.loads(data.decode("utf-8"))
             self.process_report(report)
             client_socket.close()

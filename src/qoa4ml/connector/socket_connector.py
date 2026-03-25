@@ -1,4 +1,3 @@
-import pickle
 import socket
 import time
 
@@ -57,8 +56,8 @@ class SocketConnector(BaseConnector):
 
         Notes
         -----
-        - This method serializes the `body_message` using the `pickle` module.
-        - It then sends the serialized message to the configured host and port.
+        - This method encodes the `body_message` as UTF-8 bytes.
+        - It then sends the encoded message to the configured host and port.
         - If `log_path` is provided, the round-trip time in milliseconds will be recorded in the specified log file.
 
         Raises
@@ -70,7 +69,7 @@ class SocketConnector(BaseConnector):
             start = time.time()
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect((self.host, self.port))
-            serialized_message = pickle.dumps(body_message)
+            serialized_message = body_message.encode("utf-8")
             client_socket.sendall(serialized_message)
             client_socket.close()
 

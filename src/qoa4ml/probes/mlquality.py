@@ -8,8 +8,8 @@ from qoa4ml.utils.qoa_utils import is_numpyarray
 np = lazy_import.lazy_module("numpy")
 tf = lazy_import.lazy_module("tensorflow")
 if TYPE_CHECKING:
-    import numpy as np
-    import tensorflow as tf
+    import numpy as np  # type: ignore[no-redef]
+    import tensorflow as tf  # type: ignore[no-redef]
 
 
 def timeseries_metric(model: Any) -> dict[str, Any]:
