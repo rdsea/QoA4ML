@@ -59,16 +59,16 @@ class TestEnumUniqueness:
     def test_all_enums_have_unique_values(self):
         for enum_cls in ALL_STRENUM_CLASSES:
             values = [member.value for member in enum_cls]
-            assert len(values) == len(
-                set(values)
-            ), f"{enum_cls.__name__} has duplicate values"
+            assert len(values) == len(set(values)), (
+                f"{enum_cls.__name__} has duplicate values"
+            )
 
     def test_all_enums_have_unique_names(self):
         for enum_cls in ALL_STRENUM_CLASSES:
             names = [member.name for member in enum_cls]
-            assert len(names) == len(
-                set(names)
-            ), f"{enum_cls.__name__} has duplicate names"
+            assert len(names) == len(set(names)), (
+                f"{enum_cls.__name__} has duplicate names"
+            )
 
 
 class TestSpecificEnumValues:

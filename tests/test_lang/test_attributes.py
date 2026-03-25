@@ -114,9 +114,9 @@ class TestMetaEnumDocstringAssignment:
         for member_name in DataQualityEnum._member_names_:
             member = getattr(DataQualityEnum, member_name)
             assert member.__doc__ is not None, f"{member_name} should have a docstring"
-            assert (
-                len(member.__doc__.strip()) > 0
-            ), f"{member_name} docstring should not be empty"
+            assert len(member.__doc__.strip()) > 0, (
+                f"{member_name} docstring should not be empty"
+            )
 
     def test_all_ml_model_quality_members_have_docs(self):
         for member_name in MLModelQualityEnum._member_names_:
