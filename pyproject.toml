@@ -54,7 +54,7 @@ optional-dependencies.kafka = ["confluent-kafka>=2.4.0"]
 optional-dependencies.ml = [
   "paho-mqtt==1.6.1",
   "Pillow>=10.0.0",
-  "prometheus-client==0.16.0",
+  "prometheus-client==0.24.1",
   "tensorflow>=2.15.0",
   "pandas>=2.2.2",
   # "ydata-quality==0.1.0",
