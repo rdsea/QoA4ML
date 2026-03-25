@@ -136,9 +136,11 @@ def load_config(file_path: str) -> dict | None:
                 return yaml.safe_load(f)
             else:
                 qoa_logger.warning("Unsupported format")
+                return None
     except (OSError, json.JSONDecodeError, yaml.YAMLError) as e:
         qoa_logger.error(f"Unable to load configuration: {e}")
         return None
+    return None
 
 
 def to_json(file_path: str, conf: dict) -> None:

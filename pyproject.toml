@@ -126,3 +126,29 @@ ignore = [
   "ISC001",
 ]
 
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+exclude = ["src/qoa4ml/utils/pynvml_forked.py"]
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disable_error_code = [
+  "assignment",
+  "arg-type",
+  "return-value",
+  "index",
+  "attr-defined",
+  "no-redef",
+  "dict-item",
+  "list-item",
+  "var-annotated",
+  "import-untyped",
+]
+
+[tool.pytest.ini_options]
+markers = [
+  "requires_docker: tests that require a running Docker daemon",
+  "requires_gpu: tests that require an NVIDIA GPU",
+]
+
