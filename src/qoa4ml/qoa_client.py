@@ -394,22 +394,26 @@ class QoaClient[T: AbstractReport]:
         Uses threading to send reports asynchronously.
         """
         with self.lock:
-            if connectors is None:
-                if self.default_connector:
-                    chosen_connector = self.connector_list[self.default_connector]
-                    if isinstance(chosen_connector, AmqpConnector):
-                        if not chosen_connector.check_connection():
-                            chosen_connector.reconnect()
-
-                        chosen_connector.send_report(
-                            body_mess, corr_id=str(uuid.uuid4())
-                        )
+            if connectors is not None:
+                for connector in connectors:
+                    if isinstance(connector, AmqpConnector):
+                        if not connector.check_connection():
+                            connector.reconnect()
+                        connector.send_report(body_mess, corr_id=str(uuid.uuid4()))
                     else:
-                        chosen_connector.send_report(body_mess)
+                        connector.send_report(body_mess)
+            elif self.default_connector:
+                chosen_connector = self.connector_list[self.default_connector]
+                if isinstance(chosen_connector, AmqpConnector):
+                    if not chosen_connector.check_connection():
+                        chosen_connector.reconnect()
+                    chosen_connector.send_report(body_mess, corr_id=str(uuid.uuid4()))
                 else:
-                    qoa_logger.error(
-                        "No default connector, please specify the connector to use"
-                    )
+                    chosen_connector.send_report(body_mess)
+            else:
+                qoa_logger.error(
+                    "No default connector, please specify the connector to use"
+                )
 
     def report(
         self,

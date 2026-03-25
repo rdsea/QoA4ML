@@ -62,7 +62,7 @@ def ts_inference_loss(model: Any) -> dict[str, Any]:
         return {"Error": "Unable to get model loss"}
 
 
-def training_metric(model: Any) -> dict[str, list[float]] | None:
+def training_metric(model: Any) -> dict[str, Any] | None:
     """Retrieve the full training history from a Keras Sequential model."""
     try:
         if isinstance(model, tf.keras.Sequential):
@@ -71,7 +71,7 @@ def training_metric(model: Any) -> dict[str, list[float]] | None:
             return None
     except (AttributeError, RuntimeError, TypeError) as e:
         qoa_logger.exception("Error %s when querying training metrics", type(e))
-        return {"Error": "Unable to get training metrics"}
+        return None
 
 
 def training_loss(model: Any) -> dict[str, Any] | None:
