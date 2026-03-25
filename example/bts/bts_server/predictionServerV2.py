@@ -37,11 +37,11 @@ def execute_command():
         # Check client info
 
         # Command processing
-        if req_data["command"] != None:
+        if req_data["command"] is not None:
             command = req_data["command"]
             # Creat new service
             if command == "CREATE":
-                if req_data["model"] != None:
+                if req_data["model"] is not None:
                     model_name = req_data["model"]["name"]
                     if model_name not in service_dict.keys():
                         if req_data["model"]["name"] == "LSTM":
@@ -90,12 +90,12 @@ def predict():
     """
     try:
         req_data = request.get_json()
-        if req_data["model"] != None:
+        if req_data["model"] is not None:
             model = req_data["model"]
             if model in service_dict:
                 service = service_dict[model]
                 print(service)
-                if req_data["data"] != None:
+                if req_data["data"] is not None:
                     result = service.predict(req_data["data"])
                     status = "predict success"
                 else:

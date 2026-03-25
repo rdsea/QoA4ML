@@ -94,6 +94,9 @@ dev = [
 ]
 
 
+[tool.ruff]
+exclude = ["example/bts/"]
+
 [tool.ruff.format]
 docstring-code-format = true
 docstring-code-line-length = 10
@@ -102,7 +105,7 @@ docstring-code-line-length = 10
 convention = "pep257" # Accepts: "google", "numpy", or "pep257".
 
 [tool.ruff.lint]
-exclude = ["src/qoa4ml/utils/pynvml_forked.py"]
+exclude = ["src/qoa4ml/utils/pynvml_forked.py", "example/bts/"]
 select = [
   "F",   # Pyflakes
   "E",   # Pycode styles

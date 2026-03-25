@@ -1,0 +1,12 @@
+client:
+  username: demo_user
+  instance_name: report_demo
+  stage_id: inference
+  functionality: REST
+  application_name: report_example
+  role: ml_provider
+connector:
+  - name: debug_connector
+    connector_class: Debug
+    config:
+      silence: false
