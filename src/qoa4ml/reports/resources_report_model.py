@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pydantic import BaseModel
 
 from qoa4ml.config.configs import ClientInfo

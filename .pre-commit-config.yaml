@@ -1,6 +1,6 @@
 fail_fast: true
 default_language_version:
-  python: python3.10
+  python: python3.12
 repos:
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.17.0
@@ -16,7 +16,7 @@ repos:
         args: ["--write-changes", "--interactive", "3"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.5
+    rev: v0.15.7
     hooks:
       - id: ruff
         args: [--fix]

@@ -52,7 +52,7 @@ class NodeAggregator:
         self.router = APIRouter()
         self.router.add_api_route(
             METRICS_URL_PATH,
-            self.get_lastest_timestamp,
+            self.get_latest_timestamp,
             methods=[self.config.query_method],
         )
 
@@ -96,7 +96,10 @@ class NodeAggregator:
             timestamp = report_dict.timestamp
             del report_dict.metadata, report_dict.timestamp
             fields = self.convert_unit(
-                flatten(report_dict.dict(exclude_none=True), self.config.data_separator)
+                flatten(
+                    report_dict.model_dump(exclude_none=True),
+                    self.config.data_separator,
+                )
             )
             self.embedded_database.insert(
                 timestamp,
@@ -108,12 +111,16 @@ class NodeAggregator:
             )
         elif isinstance(report_dict, ProcessReport):
             metadata = flatten(
-                {"metadata": report_dict.metadata.dict()}, self.config.data_separator
+                {"metadata": report_dict.metadata.model_dump()},
+                self.config.data_separator,
             )
             timestamp = report_dict.timestamp
             del report_dict.metadata, report_dict.timestamp
             fields = self.convert_unit(
-                flatten(report_dict.dict(exclude_none=True), self.config.data_separator)
+                flatten(
+                    report_dict.model_dump(exclude_none=True),
+                    self.config.data_separator,
+                )
             )
             self.embedded_database.insert(
                 timestamp, {"type": "process", **metadata}, fields
@@ -176,8 +183,8 @@ class NodeAggregator:
                                 break
         return original_report
 
-    def get_lastest_timestamp(self):
-        data = self.embedded_database.get_lastest_timestamp()
+    def get_latest_timestamp(self):
+        data = self.embedded_database.get_latest_timestamp()
         return [
             unflatten(
                 self.revert_unit(

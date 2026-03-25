@@ -16,7 +16,7 @@ class EmbeddedDatabase:
         datapoint = Point(time=timestamp_datetime, tags=tags, fields=fields)
         self.db.insert(datapoint, compact_key_prefixes=True)
 
-    def get_lastest_timestamp(self):
+    def get_latest_timestamp(self):
         time_query = TimeQuery()
         timestamp = datetime.fromtimestamp(math.floor(time.time()))
         return self.db.search(time_query >= timestamp)

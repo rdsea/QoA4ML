@@ -1,5 +1,4 @@
-from enum import Enum
-from typing import Union
+from enum import Enum, StrEnum
 
 from qoa4ml.lang.attributes import (
     DataQualityEnum,
@@ -8,55 +7,55 @@ from qoa4ml.lang.attributes import (
 )
 
 
-class ResourcesUtilizationMetricNameEnum(str, Enum):
+class ResourcesUtilizationMetricNameEnum(StrEnum):
     cpu = "cpu_usage"
     memory = "memory_usage"
 
 
-class ImageQualityNameEnum(str, Enum):
+class ImageQualityNameEnum(StrEnum):
     image_size = "image_size"
     object_size = "object_size"
     color_mode = "color_mode"
     color_channel = "color_channel"
 
 
-MetricNameEnum = Union[
-    ServiceQualityEnum,
-    MLModelQualityEnum,
-    DataQualityEnum,
-    ResourcesUtilizationMetricNameEnum,
-    ImageQualityNameEnum,
-    str,
-]
+MetricNameEnum = (
+    ServiceQualityEnum
+    | MLModelQualityEnum
+    | DataQualityEnum
+    | ResourcesUtilizationMetricNameEnum
+    | ImageQualityNameEnum
+    | str
+)
 
 
-class StageNameEnum(str, Enum):
+class StageNameEnum(StrEnum):
     ml_inference_aggregate = "ml_inference_aggregate"
     ml_inference_ensemble = "ml_inference_ensemble"
     data_processing = "data_processing"
     gateway = "gateway"
 
 
-class FunctionalityEnum(str, Enum):
+class FunctionalityEnum(StrEnum):
     rest = "REST"
     tensorflow = "TensorFlow"
     transformation = "Transformation"
     max_aggregate = "Max Aggregate"
 
 
-class StakeholderRoleEnum(str, Enum):
-    ml_consumer = "ml_provider"
+class StakeholderRoleEnum(StrEnum):
+    ml_consumer = "ml_consumer"
     ml_provider = "ml_provider"
     ml_infrastructure = "ml_infrastructure"
 
 
-class ResourceEnum(str, Enum):
+class ResourceEnum(StrEnum):
     ml_service = "ml_service"
     storage = "storage"
     ml_models = "ml_models"
 
 
-class ServiceAPIEnum(str, Enum):
+class ServiceAPIEnum(StrEnum):
     rest = "REST"
     mqtt = "MQTT"
     kafka = "Kafka"
@@ -66,7 +65,7 @@ class ServiceAPIEnum(str, Enum):
     debug = "Debug"
 
 
-class InfrastructureEnum(str, Enum):
+class InfrastructureEnum(StrEnum):
     raspi4 = "Raspberry Pi 4 Model B"
     nvidia_jetson_nano = "NVIDIA Jetson Nano"
     nvidia_jetson_orin_nano = "NVIDIA Jetson Orin Nano"
@@ -75,19 +74,19 @@ class InfrastructureEnum(str, Enum):
     rock_pi_n10 = "Rock Pi N10"
 
 
-class ProcessorEnum(str, Enum):
+class ProcessorEnum(StrEnum):
     cpu = "CPU"
     gpu = "GPU"
     tpu = "TPU"
 
 
-class DataTypeEnum(str, Enum):
+class DataTypeEnum(StrEnum):
     video = "video"
     image = "image"
     message = "message"
 
 
-class DataFormatEnum(str, Enum):
+class DataFormatEnum(StrEnum):
     binary = "binary"
     csv = "csv"
     json = "json"
@@ -97,17 +96,17 @@ class DataFormatEnum(str, Enum):
     mp4 = "mp4"
 
 
-class DevelopmentEnvironmentEnum(str, Enum):
+class DevelopmentEnvironmentEnum(StrEnum):
     kerash5 = "kerash5"
     onnx = "onnx"
 
 
 class ServingPlatformEnum(Enum):
     tensorflow = "TensorFlow"
-    predictio = "predictio"
+    prediction = "prediction"
 
 
-class ModelCategoryEnum(str, Enum):
+class ModelCategoryEnum(StrEnum):
     svm = "SVM"
     dt = "DT"
     cnn = "CNN"
@@ -116,12 +115,12 @@ class ModelCategoryEnum(str, Enum):
     ann = "ANN"
 
 
-class InferenceModeEnum(str, Enum):
+class InferenceModeEnum(StrEnum):
     static = "static"
     dynamic = "dynamic"
 
 
-class OperatorEnum(str, Enum):
+class OperatorEnum(StrEnum):
     range = "range"
     leq = "less_equal"
     geq = "greater_equal"
@@ -130,7 +129,7 @@ class OperatorEnum(str, Enum):
     eq = "equal"
 
 
-class AggregateFunctionEnum(str, Enum):
+class AggregateFunctionEnum(StrEnum):
     MIN = "MIN"
     MAX = "MAX"
     AVG = "AVERAGE"
@@ -141,13 +140,13 @@ class AggregateFunctionEnum(str, Enum):
     PRODUCT = "PRODUCT"
 
 
-class CostUnitEnum(str, Enum):
+class CostUnitEnum(StrEnum):
     usd = "USD"
     eur = "EUR"
     other = "other"
 
 
-class MetricCategoryEnum(str, Enum):
+class MetricCategoryEnum(StrEnum):
     service = "service"
     data = "data"
     ml_specific = "ml_specific"
@@ -155,26 +154,26 @@ class MetricCategoryEnum(str, Enum):
     inference = "inference"
 
 
-class CgroupVersionEnum(str, Enum):
+class CgroupVersionEnum(StrEnum):
     v1 = "cgroupv1"
     v2 = "cgroupv2"
 
 
-class MetricClassEnum(str, Enum):
+class MetricClassEnum(StrEnum):
     gauge = "Gauge"
     counter = "Counter"
     summary = "Summary"
     histogram = "Histogram"
 
 
-class ReportTypeEnum(str, Enum):
+class ReportTypeEnum(StrEnum):
     data = "data_report"
     service = "service_report"
     ml_specific = "ml_specific_report"
     security = "security_report"
 
 
-class EnvironmentEnum(str, Enum):
+class EnvironmentEnum(StrEnum):
     hpc = "HPC"
     edge = "Edge"
     cloud = "Cloud"

@@ -35,12 +35,12 @@ class KafkaCollector(BaseCollector):
     def start_collecting(self):
         self.running = True
         while self.running:
-            msg = self.consumer.poll(self.config.poll_inteval)
+            msg = self.consumer.poll(self.config.poll_interval)
 
             if msg is None:
                 continue
             if msg.error():
-                print(f"Consumer error: {msg.error()}")
+                qoa_logger.error("Consumer error: %s", msg.error())
                 continue
 
     def stop(self):

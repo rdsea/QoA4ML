@@ -23,14 +23,12 @@ keywords = ["Monitoring", "Machine Learning"]
 homepage = "https://rdsea.github.io/"
 repository = "https://github.com/rdsea/QoA4ML"
 documentation = "https://rdsea.github.io/QoA4ML/"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Development Status :: 3 - Alpha",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: System :: Monitoring",
@@ -49,10 +47,9 @@ dependencies = [
   "tinyflux>=1.0.0",
   "uvicorn>=0.29.0",
   "docker==7.1.0",
-  "numpy>=1.23.5",
-  "eval-type-backport>=0.2.0",
-  "devtools",
+  "numpy>=1.26.0",
   "lazy-import>=0.2.2",
+  "devtools>=0.12.0",
 ]
 
 optional-dependencies.kafka = ["confluent-kafka>=2.4.0"]
@@ -86,20 +83,15 @@ Documentation = "https://rdsea.github.io/QoA4ML/"
 AaltoSEA = "https://rdsea.github.io/"
 
 
-[tool.rye]
-dev-dependencies = [
+[dependency-groups]
+dev = [
   "pre-commit",
-  "ruff",
+  "ruff>=0.15.7",
   "codespell",
-  "pip>=24.2",
+  "mypy",
   "pytest>=8.3.2",
-  "tox>=4.18.0",
   "pytest-sugar>=1.0.0",
-  "tox-uv>=1.11.2",
-  "tox-gh-actions>=3.2.0",
 ]
-managed = true
-universal = true
 
 
 [tool.ruff.format]
@@ -134,5 +126,29 @@ ignore = [
   "ISC001",
 ]
 
-[tool.rye.lint.pylint]
-max-args = 10
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+exclude = ["src/qoa4ml/utils/pynvml_forked.py"]
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disable_error_code = [
+  "assignment",
+  "arg-type",
+  "return-value",
+  "index",
+  "attr-defined",
+  "no-redef",
+  "dict-item",
+  "list-item",
+  "var-annotated",
+  "import-untyped",
+]
+
+[tool.pytest.ini_options]
+markers = [
+  "requires_docker: tests that require a running Docker daemon",
+  "requires_gpu: tests that require an NVIDIA GPU",
+]
+

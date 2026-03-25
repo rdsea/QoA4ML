@@ -4,7 +4,7 @@ import lazy_import
 
 from ..collector.host_object import HostObject
 from ..config.configs import MQTTConnectorConfig
-from ..utils.qoa_utils import qoaLogger
+from ..utils.logger import qoa_logger
 from .base_connector import BaseConnector
 
 if TYPE_CHECKING:
@@ -26,7 +26,6 @@ class MqttConnector(BaseConnector):
         self.pub_queue = configuration.in_queue
         self.sub_queue = configuration.out_queue
         # Create the mqtt client
-        self.test = mqtt
         self.client = mqtt.Client(
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
             client_id=configuration.client_id,
@@ -45,7 +44,7 @@ class MqttConnector(BaseConnector):
         )
 
     def on_connect(self, client, userdata, flags, rc):
-        qoaLogger.debug("Connected with result code " + str(rc))
+        qoa_logger.debug("Connected with result code " + str(rc))
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
         client.subscribe(self.sub_queue)

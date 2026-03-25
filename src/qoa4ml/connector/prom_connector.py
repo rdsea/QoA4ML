@@ -1,7 +1,5 @@
 import prometheus_client as pr
 
-_INF = float("inf")
-
 
 class PromConnector:
     def __init__(self, info):

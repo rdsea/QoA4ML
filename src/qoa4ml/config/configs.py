@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-from typing import Union
-
 from pydantic import BaseModel, Field, model_validator
 
 from ..lang.datamodel_enum import (
@@ -109,24 +105,23 @@ class KafkaCollectorConfig(BaseModel):
     broker_url: str
     group_id: str
     auto_offset_reset: str = "earliest"
-    poll_inteval: float = 1.0
+    poll_interval: float = 1.0
 
 
 class DebugConnectorConfig(BaseModel):
     silence: bool
 
 
-# TODO: test if loading the config, the type of the config can be found
-CollectorConfigClass = Union[
-    AMQPCollectorConfig, SocketCollectorConfig, KafkaCollectorConfig, dict
-]
-ConnectorConfigClass = Union[
-    AMQPConnectorConfig,
-    SocketConnectorConfig,
-    KafkaConnectorConfig,
-    DebugConnectorConfig,
-    dict,
-]
+CollectorConfigClass = (
+    AMQPCollectorConfig | SocketCollectorConfig | KafkaCollectorConfig | dict
+)
+ConnectorConfigClass = (
+    AMQPConnectorConfig
+    | SocketConnectorConfig
+    | KafkaConnectorConfig
+    | DebugConnectorConfig
+    | dict
+)
 
 
 class CollectorConfig(BaseModel):
@@ -146,7 +141,7 @@ class ClientConfig(BaseModel):
     registration_url: str | None = None
     collector: list[CollectorConfig] | None = None
     connector: list[ConnectorConfig] | None = None
-    probes: list[ProbeConfig] | None = None
+    probes: list["ProbeConfig"] | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -214,6 +209,9 @@ class JetsonSystemProbeConfig(ProbeConfig):
 class JetsonProcessesProbeConfig(ProbeConfig):
     probe_type: str = Field("jetson_sys")
     node_name: str | None
+
+
+ClientConfig.model_rebuild()
 
 
 class NodeAggregatorConfig(BaseModel):
