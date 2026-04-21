@@ -194,16 +194,54 @@ class TestAmqpCollectorStartCollecting:
 
 
 class TestAmqpCollectorStop:
-    def test_stop_closes_channel(self, amqp_collector_config, mock_pika):
+    def test_stop_closes_channel_and_connection(self, amqp_collector_config, mock_pika):
         from qoa4ml.collector.amqp_collector import AmqpCollector
 
-        _mock, _mock_conn, mock_ch = mock_pika
+        _mock, mock_conn, mock_ch = mock_pika
 
         collector = AmqpCollector(amqp_collector_config)
         collector.stop()
 
         mock_ch.stop_consuming.assert_called_once()
         mock_ch.close.assert_called_once()
+        # Regression: previously the underlying pika BlockingConnection
+        # was leaked across restart cycles.
+        mock_conn.close.assert_called_once()
+
+
+class TestAmqpCollectorOnRequestMalformed:
+    def test_on_request_drops_malformed_json_without_crashing(
+        self, amqp_collector_config, mock_pika
+    ):
+        # Regression: previously `json.loads(body)` was unguarded and a
+        # malformed frame crashed the consumer thread.
+        from qoa4ml.collector.amqp_collector import AmqpCollector
+
+        collector = AmqpCollector(amqp_collector_config)
+        # No host_object → decode+loads path
+        collector.on_request(None, None, None, b"not json")  # must NOT raise
+
+    def test_on_request_drops_non_utf8_without_crashing(
+        self, amqp_collector_config, mock_pika
+    ):
+        from qoa4ml.collector.amqp_collector import AmqpCollector
+
+        collector = AmqpCollector(amqp_collector_config)
+        collector.on_request(None, None, None, b"\xff\xfe\xfd")  # must NOT raise
+
+    def test_on_request_host_object_exception_is_contained(
+        self, amqp_collector_config, mock_pika
+    ):
+        from unittest.mock import MagicMock
+
+        from qoa4ml.collector.amqp_collector import AmqpCollector
+        from qoa4ml.collector.host_object import HostObject
+
+        host = MagicMock(spec=HostObject)
+        host.message_processing.side_effect = RuntimeError("host boom")
+        collector = AmqpCollector(amqp_collector_config, host_object=host)
+        collector.on_request(None, None, None, b"{}")  # must NOT raise
+        host.message_processing.assert_called_once()
 
 
 class TestAmqpCollectorGetQueue:

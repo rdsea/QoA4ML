@@ -7,74 +7,52 @@ from .base_connector import BaseConnector
 
 
 class SocketConnector(BaseConnector):
+    """TCP socket connector that publishes reports as UTF-8 bytes.
+
+    Any network error (connection refused, timeout, reset, ...) is caught,
+    logged, and swallowed so callers (typically `Probe.reporting` running in
+    a `RepeatedTimer` thread) do not die on transient aggregator outages.
     """
-    SocketConnector handles the connection to a TCP socket for sending serialized messages.
 
-    Parameters
-    ----------
-    config : SocketConnectorConfig
-        Configuration settings for the socket connector.
-
-    Attributes
-    ----------
-    config : SocketConnectorConfig
-        The socket connector configuration.
-    host : str
-        The hostname or IP address to connect to.
-    port : int
-        The port number to connect to on the host.
-
-    Methods
-    -------
-    send_report(body_message: str, log_path: Optional[str] = None) -> None
-        Send a serialized message over the socket and optionally log the round-trip time.
-    """
+    # Socket connect / send timeout (seconds). A send that takes longer than
+    # this is almost certainly stuck against a dead aggregator; dropping the
+    # frame is better than hanging the probe thread indefinitely.
+    _DEFAULT_TIMEOUT = 5.0
 
     def __init__(self, config: SocketConnectorConfig):
-        """
-        Initialize an instance of SocketConnector.
-
-        Parameters
-        ----------
-        config : SocketConnectorConfig
-            Configuration settings for the socket connector.
-        """
         self.config = config
         self.host = config.host
         self.port = config.port
+        self.timeout = self._DEFAULT_TIMEOUT
 
     def send_report(self, body_message: str, log_path: str | None = None) -> None:
-        """
-        Send a serialized message over the socket and optionally log the round-trip time.
+        """Send ``body_message`` to the configured host:port.
 
         Parameters
         ----------
         body_message : str
-            The message body to be serialized and sent.
+            Report body, sent as UTF-8 bytes.
         log_path : str, optional
-            The path to the log file where round-trip time will be recorded, default is None.
-
-        Notes
-        -----
-        - This method encodes the `body_message` as UTF-8 bytes.
-        - It then sends the encoded message to the configured host and port.
-        - If `log_path` is provided, the round-trip time in milliseconds will be recorded in the specified log file.
-
-        Raises
-        ------
-        ConnectionRefusedError
-            If the connection to the host is refused.
+            If set, append the round-trip time (ms) to this file.
         """
+        start = time.time()
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.settimeout(self.timeout)
         try:
-            start = time.time()
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect((self.host, self.port))
-            serialized_message = body_message.encode("utf-8")
-            client_socket.sendall(serialized_message)
-            client_socket.close()
+            client_socket.sendall(body_message.encode("utf-8"))
+        except OSError as error:
+            # Covers ConnectionRefusedError, TimeoutError, BrokenPipeError,
+            # ConnectionResetError, socket.gaierror, and any other OSError.
+            error_type = type(error).__name__
+            qoa_logger.error(f"SocketConnector send failed ({error_type}): {error}")
+            return
+        finally:
+            try:
+                client_socket.close()
+            except OSError:
+                pass
 
-            if log_path:
-                with open(log_path, "a", encoding="utf-8") as file:
-                    file.write(f"{(time.time() - start) * 1000:.2f} ms\n")
-        except ConnectionRefusedError:
-            qoa_logger.error("Connection to aggregator refused")
+        if log_path:
+            with open(log_path, "a", encoding="utf-8") as file:
+                file.write(f"{(time.time() - start) * 1000:.2f} ms\n")

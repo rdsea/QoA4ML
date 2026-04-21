@@ -1,8 +1,8 @@
 client:
-  usename: aaltosea2
+  username: aaltosea2
   instance_name: data_processing01
   stage_id: data_processing
-  functionality: transformation
+  functionality: Transformation
   application_name: test
   role: ml
 connector:

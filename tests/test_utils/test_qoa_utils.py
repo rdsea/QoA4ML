@@ -180,10 +180,13 @@ class TestGetDictAt:
         assert key == "only"
         assert value == 42
 
-    def test_out_of_range_returns_none(self):
+    def test_out_of_range_raises_index_error(self):
+        # Regression: previously `get_dict_at` silently swallowed IndexError,
+        # returned None, and callers unpacking the return hit a confusing
+        # TypeError. The function now surfaces IndexError directly.
         d = {"a": 1}
-        result = get_dict_at(d, 5)
-        assert result is None
+        with pytest.raises(IndexError):
+            get_dict_at(d, 5)
 
 
 class TestIsNumpyarray:

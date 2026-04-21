@@ -91,8 +91,6 @@ class SystemMonitoringProbe(Probe):
             if self.config.node_name is None
             else self.config.node_name
         )
-        if self.config.require_register:
-            self.obs_service_url = self.config.obs_service_url
         self.environment = config.environment
         self.cpu_metadata = self.get_cpu_metadata()
         self.gpu_metadata = self.get_gpu_metadata()

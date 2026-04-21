@@ -186,6 +186,20 @@ class TestProcessReport:
         dot_aggregator.process_report(json.dumps(report))
         dot_aggregator.embedded_database.insert.assert_not_called()
 
+    def test_process_malformed_json_is_dropped_not_raised(self, dot_aggregator):
+        # Regression: `process_report` used to call `json.loads` unguarded,
+        # so a malformed / non-JSON socket frame crashed the collector
+        # thread (daemon). Now it must log and drop instead.
+        dot_aggregator.embedded_database = MagicMock()
+        dot_aggregator.process_report("{not valid json")
+        dot_aggregator.embedded_database.insert.assert_not_called()
+
+    def test_process_non_string_payload_is_dropped(self, dot_aggregator):
+        dot_aggregator.embedded_database = MagicMock()
+        # None can't be json.loaded - TypeError path
+        dot_aggregator.process_report(None)
+        dot_aggregator.embedded_database.insert.assert_not_called()
+
 
 class TestGetLatestTimestamp:
     @pytest.fixture

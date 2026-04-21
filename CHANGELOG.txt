@@ -1,6 +1,87 @@
 Change Log
 ======================
 
+0.3.19 (21/04/2026)
+---------------------
+Hardening release focused on dead-code removal, documentation accuracy,
+and closing the last class of silent-failure bugs surfaced in a deep
+review. Includes several behaviour changes — see "Breaking" below.
+
+Fixes:
+- QoaClient: config_dict / config_path precedence is now strict (elif);
+  providing neither with no registration_url raises ValueError instead
+  of AttributeError.
+- node_aggregator: edge-environment path now parses incoming JSON into
+  SystemReport / ProcessReport instead of relying on two permanently
+  dead isinstance() branches.
+- rohe_ObService: handler no longer NameErrors on non-JSON POSTs;
+  agent status is recorded as "running" after start() (was "stop").
+- Rohe_Agent.stop() now actually stops the AMQP collector (channel +
+  connection close); previously only flipped an unused flag. Also
+  fixed the 'colletor_conf' typo.
+- DataConstraint default name typo: "data_constaint" -> "data_constraint".
+- GPU memory unit label: "Gb" -> "MB" (value was MB but mislabeled).
+- get_dict_at now raises IndexError on out-of-range instead of silently
+  returning None.
+- PromConnector.set() on a Counter now raises ValueError instead of
+  silently incrementing.
+- PromConnector.update_violation_count() replaced by
+  render_violation_counts() which actually returns the rendered bytes.
+- MQTT connector: swapped pub/sub queue assignments so they match the
+  documented config semantics (in_queue is subscribe, out_queue publish).
+- Probe + RepeatedTimer: wrap callback in try/except so a single bad
+  tick cannot silently kill the monitoring thread.
+- SocketCollector: added stop() and accept/client timeouts.
+- SocketConnector: broadened catch to OSError; added send timeout.
+- DockerMonitoringProbe: catches real Docker SDK exceptions
+  (DockerException, RequestException, OSError).
+- docker_util: guard against idle-sample zero-division and untagged
+  images (image.tags[0] IndexError).
+- MqttConnector: clean ImportError when paho-mqtt missing; added
+  send_report() so the class is instantiable.
+- KafkaConnector: use the correct confluent_kafka dict config.
+- GeneralApplicationReport: implemented generate_report() (class was
+  uninstantiable due to abstract method).
+- embedded_database.get_latest_timestamp: UTC-aware datetimes + max()
+  with a bounded lookback window.
+- qoa_utils.CGROUP_VERSION: lazy via __getattr__ + @lru_cache; no more
+  subprocess("mount") at import time.
+- process_monitoring_probe / node_aggregator / exporter: removed
+  module-level logging.basicConfig hijacks.
+- dataquality_utils.image_quality: proper types, TypeError on bad input.
+
+Dead-code removal:
+- Deleted legacy example/bts/ tree (imports Qoa_Client, observeMetric,
+  qoa4ml_lib — none of which exist in the current package).
+- Deleted sys_monitor / system_report and their three never-True flags.
+- Deleted commented-out OutlierDetector block (dataquality_utils.py).
+- Deleted commented-out process_report/process_monitor block (qoa_utils.py).
+- Deleted the dead "if require_register: self.obs_service_url = ..."
+  assignments across process/system/docker probes.
+
+Docs:
+- Rewrote docs/index.md from scratch; previous copy referred to camelCase
+  methods, a non-existent qoa4ml_lib path, a made-up report schema, and
+  Metric/Counter/Gauge classes that do not exist.
+- docs/metrics.md synchronized with real enum members and signatures.
+
+Tests:
+- 486+ tests, incl. new regressions for every fix above.
+
+Breaking changes:
+- DataQualityEnum.ACCURACY string value: "accuracy" -> "data_accuracy";
+  MLModelQualityEnum.ACCURACY: "accuracy" -> "model_accuracy". This
+  eliminates a silent Pydantic-coercion collision between the two.
+- ClientInfo.custom_info is now strictly dict (was dict | str).
+- mlquality return keys normalised to lowercase / PEP-8 (e.g. "MAE" ->
+  "mae", "Training Loss" -> "loss", "Evaluate Accuracy" ->
+  "val_accuracy", "Confidence" -> "confidence"). Consumers relying on
+  the old capitalised keys must update.
+- PromConnector.set() on a Counter raises instead of silently
+  incrementing; PromConnector.update_violation_count() replaced by
+  render_violation_counts().
+- Rohe_Agent.stop() now performs a full shutdown (channel + connection).
+
 0.3.18 (25/03/2026)
 ---------------------
 Major refactor and production readiness release:
@@ -43,7 +124,7 @@ Update monitoring system/process/docker
 ---------------------
 Add metric and modify format of system/process reports
 
-0.0.64 (15/03/2022)
+0.0.64 (15/03/2023)
 ---------------------
 Add metric and modify format of system/process reports
 

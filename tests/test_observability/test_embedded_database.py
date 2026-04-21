@@ -92,3 +92,36 @@ class TestGetLatestTimestamp:
         assert isinstance(result, list)
         if len(result) > 0:
             assert result[0].fields["val"] == 42.0
+
+    def test_returns_max_timestamp_not_last_inserted(self, db):
+        # Regression: previous impl returned `results[-1:]` which relied on
+        # TinyFlux insertion order. Insert OUT of order and ensure the
+        # largest timestamp wins.
+        now = time.time()
+        db.insert(timestamp=now - 1, tags={"type": "t"}, fields={"val": 3.0})
+        db.insert(timestamp=now - 5, tags={"type": "t"}, fields={"val": 1.0})
+        db.insert(timestamp=now - 3, tags={"type": "t"}, fields={"val": 2.0})
+
+        result = db.get_latest_timestamp()
+        assert len(result) == 1
+        assert result[0].fields["val"] == 3.0
+
+    def test_falls_back_to_older_data_when_window_empty(self, db):
+        # If the recent window has nothing, the method must still surface
+        # the most-recent historical point rather than returning empty.
+        now = time.time()
+        db.insert(timestamp=now - 3600, tags={"type": "t"}, fields={"val": 9.0})
+
+        result = db.get_latest_timestamp()
+        assert len(result) == 1
+        assert result[0].fields["val"] == 9.0
+
+    def test_lookback_window_is_honored(self, db):
+        # A custom lookback window should bound which points are considered.
+        now = time.time()
+        db.insert(timestamp=now - 3600, tags={"type": "t"}, fields={"val": 1.0})
+        db.insert(timestamp=now - 10, tags={"type": "t"}, fields={"val": 2.0})
+
+        result = db.get_latest_timestamp(lookback_seconds=30)
+        assert len(result) == 1
+        assert result[0].fields["val"] == 2.0

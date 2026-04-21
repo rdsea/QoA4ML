@@ -7,6 +7,7 @@ from pathlib import Path
 from threading import Thread
 
 from fastapi import APIRouter
+from pydantic import ValidationError
 
 from qoa4ml.collector.socket_collector import SocketCollector
 from qoa4ml.config.configs import NodeAggregatorConfig
@@ -15,9 +16,9 @@ from qoa4ml.observability.odop_obs.embedded_database import EmbeddedDatabase
 from qoa4ml.reports.resources_report_model import ProcessReport, SystemReport
 from qoa4ml.utils.qoa_utils import flatten, make_folder, unflatten
 
-logging.basicConfig(
-    format="%(asctime)s:%(levelname)s -- %(message)s", level=logging.INFO
-)
+# Use a named logger instead of hijacking the root logger via basicConfig;
+# the host application controls its own handlers/formatters.
+logger = logging.getLogger(__name__)
 
 METRICS_URL_PATH = "/metrics"
 
@@ -45,79 +46,93 @@ class NodeAggregator:
         )
 
     def process_report(self, report: str):
-        report_dict = json.loads(report)
-        if self.environment == EnvironmentEnum.hpc:
-            if report_dict["type"] == "system":
-                del report_dict["type"]
-                metadata = flatten(
-                    {"metadata": report_dict["metadata"]}, self.config.data_separator
-                )
-                timestamp = report_dict["timestamp"]
-                del report_dict["metadata"], report_dict["timestamp"]
-                fields = self.convert_unit(
-                    flatten(report_dict, self.config.data_separator)
-                )
-                self.embedded_database.insert(
-                    timestamp,
-                    {"type": "node", **metadata},
-                    fields,
-                )
-            elif report_dict["type"] == "process":
-                del report_dict["type"]
-                metadata = flatten(
-                    {"metadata": report_dict["metadata"]}, self.config.data_separator
-                )
-                timestamp = report_dict["timestamp"]
-                del report_dict["metadata"], report_dict["timestamp"]
-                fields = self.convert_unit(
-                    flatten(report_dict, self.config.data_separator)
-                )
-                self.embedded_database.insert(
-                    timestamp,
-                    {"type": "process", **metadata},
-                    fields,
-                )
-            else:
-                logging.error("Value Error: Unknown report type")
-        elif isinstance(report_dict, SystemReport):
-            node_name = report_dict.metadata.node_name
-            timestamp = report_dict.timestamp
-            del report_dict.metadata, report_dict.timestamp
-            fields = self.convert_unit(
-                flatten(
-                    report_dict.model_dump(exclude_none=True),
-                    self.config.data_separator,
-                )
+        try:
+            report_dict = json.loads(report)
+        except (json.JSONDecodeError, TypeError) as error:
+            # Drop malformed frames instead of letting them crash the thread.
+            logger.error(
+                f"invalid_payload: dropping socket frame ({type(error).__name__}): {error}"
             )
+            return
+
+        if self.environment == EnvironmentEnum.hpc:
+            self._process_hpc_report(report_dict)
+        else:
+            self._process_edge_report(report_dict)
+
+    def _process_hpc_report(self, report_dict: dict) -> None:
+        """HPC environment: reports are plain JSON dicts with a ``type`` key."""
+        report_type = report_dict.get("type")
+        if report_type == "system":
+            tag_type = "node"
+        elif report_type == "process":
+            tag_type = "process"
+        else:
+            logger.error(f"unknown HPC report type: {report_type!r}")
+            return
+
+        del report_dict["type"]
+        metadata = flatten(
+            {"metadata": report_dict["metadata"]}, self.config.data_separator
+        )
+        timestamp = report_dict["timestamp"]
+        del report_dict["metadata"], report_dict["timestamp"]
+        fields = self.convert_unit(flatten(report_dict, self.config.data_separator))
+        self.embedded_database.insert(timestamp, {"type": tag_type, **metadata}, fields)
+
+    def _process_edge_report(self, report_dict: dict) -> None:
+        """Edge / Cloud environment: dict is validated into a Pydantic model.
+
+        Previously the code did ``isinstance(report_dict, SystemReport)`` on
+        the raw ``json.loads`` dict, which could never be True — both
+        branches were dead. We now parse explicitly, preferring SystemReport
+        first and falling back to ProcessReport.
+        """
+        system_report: SystemReport | None = None
+        process_report: ProcessReport | None = None
+        try:
+            system_report = SystemReport(**report_dict)
+        except ValidationError:
+            try:
+                process_report = ProcessReport(**report_dict)
+            except ValidationError as error:
+                logger.error(
+                    f"edge report did not match SystemReport or ProcessReport: {error}"
+                )
+                return
+
+        if system_report is not None:
+            node_name = system_report.metadata.node_name
+            timestamp = system_report.timestamp
+            payload = system_report.model_dump(exclude_none=True)
+            # Remove the metadata/timestamp keys so only metric fields are flattened.
+            payload.pop("metadata", None)
+            payload.pop("timestamp", None)
+            fields = self.convert_unit(flatten(payload, self.config.data_separator))
             self.embedded_database.insert(
                 timestamp,
-                {
-                    "type": "node",
-                    "node_name": node_name,
-                },
+                {"type": "node", "node_name": node_name},
                 fields,
             )
-        elif isinstance(report_dict, ProcessReport):
-            metadata = flatten(
-                {"metadata": report_dict.metadata.model_dump()},
-                self.config.data_separator,
-            )
-            timestamp = report_dict.timestamp
-            del report_dict.metadata, report_dict.timestamp
-            fields = self.convert_unit(
-                flatten(
-                    report_dict.model_dump(exclude_none=True),
-                    self.config.data_separator,
-                )
-            )
-            self.embedded_database.insert(
-                timestamp, {"type": "process", **metadata}, fields
-            )
+            return
+
+        assert process_report is not None  # narrowed by control flow above
+        metadata = flatten(
+            {"metadata": process_report.metadata.model_dump()},
+            self.config.data_separator,
+        )
+        timestamp = process_report.timestamp
+        payload = process_report.model_dump(exclude_none=True)
+        payload.pop("metadata", None)
+        payload.pop("timestamp", None)
+        fields = self.convert_unit(flatten(payload, self.config.data_separator))
+        self.embedded_database.insert(
+            timestamp, {"type": "process", **metadata}, fields
+        )
 
     def convert_unit(self, report: dict):
         converted_report = report
         for key, value in report.items():
-            # TODO: for instead of hard coded
             if isinstance(value, str):
                 if "frequency" in key:
                     converted_report[key] = self.unit_conversion["frequency"][value]
@@ -190,9 +205,9 @@ class NodeAggregator:
     def start(self):
         self.execution_flag = True
         self.server_thread.start()
-        logging.info("node aggregator started")
+        logger.info("node aggregator started")
 
     def stop(self):
         self.execution_flag = False
         self.server_thread.join()
-        logging.info("node aggregator stopped")
+        logger.info("node aggregator stopped")

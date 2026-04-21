@@ -53,6 +53,6 @@ def get_sys_gpu_metadata():
         metadata[f"device_{i + 1}"] = {
             "frequency": {"value": clock, "unit": "MHz"},
             "core": cores,
-            "mem": {"capacity": mem.total / 1024.0 / 1024, "unit": "Gb"},
+            "mem": {"capacity": mem.total / 1024.0 / 1024, "unit": "MB"},
         }
     return metadata

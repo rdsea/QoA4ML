@@ -1,4 +1,6 @@
 import io
+import warnings
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -10,8 +12,6 @@ from qoa4ml.lang.datamodel_enum import ImageQualityNameEnum
 from qoa4ml.utils.logger import qoa_logger
 
 
-# TODO: add citation for each metric implementation
-# Abstract class for return value
 def eva_input_file_type(input_file: UploadFile, allowed_data_type: list[str]):
     """
     Check if the input file matches any of the allowed data types
@@ -32,32 +32,41 @@ def eva_input_file_type(input_file: UploadFile, allowed_data_type: list[str]):
     return input_file.content_type in allowed_data_type
 
 
-def image_quality(input_image: bytes | np.ndarray):
+def image_quality(input_image: bytes | np.ndarray) -> dict[ImageQualityNameEnum, Any]:
     """
     Assess various quality metrics of an input image.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     input_image : bytes or np.ndarray
         The input image in either byte format or as a numpy array.
 
-    Returns:
-    --------
+    Returns
+    -------
     dict
-        A dictionary containing the following keys:
-          - ImageQualityNameEnum.image_size: The size of the image (width, height).
-          - ImageQualityNameEnum.color_mode: The color mode of the image (e.g., 'RGB').
-          - ImageQualityNameEnum.color_channel: The number of color channels in the image.
+        A dictionary keyed by ``ImageQualityNameEnum`` with:
+          - ``image_size``: tuple ``(width, height)``.
+          - ``color_mode``: PIL color mode (e.g. ``"RGB"``).
+          - ``color_channel``: number of color channels.
+
+    Raises
+    ------
+    TypeError
+        If ``input_image`` is neither ``bytes`` nor ``numpy.ndarray``.
     """
-    quality = {}
     if isinstance(input_image, bytes):
-        image = Image.open(io.BytesIO(input_image))
+        image: Image.Image = Image.open(io.BytesIO(input_image))
     elif isinstance(input_image, np.ndarray):
         image = Image.fromarray(input_image)
-    quality[ImageQualityNameEnum.image_size] = image.size
-    quality[ImageQualityNameEnum.color_mode] = image.mode
-    quality[ImageQualityNameEnum.color_channel] = len(image.getbands())
-    return quality
+    else:
+        raise TypeError(
+            f"image_quality expects bytes or numpy.ndarray, got {type(input_image).__name__}"
+        )
+    return {
+        ImageQualityNameEnum.image_size: image.size,
+        ImageQualityNameEnum.color_mode: image.mode,
+        ImageQualityNameEnum.color_channel: len(image.getbands()),
+    }
 
 
 def eva_erronous(data: np.ndarray | pd.DataFrame, errors: list | None = None):
@@ -184,8 +193,11 @@ def eva_missing(
                 results[DataQualityEnum.NULL_CORRELATIONS] = nulls.isnull().corr()
 
             if predict:
-                raise RuntimeWarning("Predict is enabled but not implemented yet")
-                # results["missing_prediction"] = mp.predict_missings()
+                warnings.warn(
+                    "Predict is enabled but not implemented yet",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
             return results
         else:
@@ -234,61 +246,3 @@ def eva_none(data: np.ndarray | pd.DataFrame):
     except Exception as e:
         qoa_logger.exception(f"Error {type(e)} in eva_none")
         return None
-
-
-#
-#
-# class OutlierDetector:
-#     def __init__(self, data):
-#         self.data = None
-#         self.update_data(data)
-#
-#     def detect_outlier(self, n_data, labels=None, random_state=0, n=10, cluster=False):
-#         if labels is None:
-#             labels = []
-#         if is_numpyarray(n_data):
-#             n_data = pd.DataFrame(n_data)
-#         if is_pddataframe(n_data):
-#             if self.data is not None:
-#                 data = None
-#                 try:
-#                     data = pd.concat([self.data, n_data])
-#                 except Exception as e:
-#                     qoa_logger.error(
-#                         f"Error {type(e)} in concatenating data: {e.__traceback__}"
-#                     )
-#                     traceback.print_exception(*sys.exc_info())
-#                 if data is not None:
-#                     results = {}
-#                     for label in labels:
-#                         try:
-#                             if "LabelInspector" not in globals():
-#                                 global LabelInspector
-#                                 from ydata_quality.labelling import LabelInspector
-#                             li = LabelInspector(
-#                                 df=data, label=label, random_state=random_state
-#                             )
-#                             results[label] = li.outlier_detection(
-#                                 th=n, use_clusters=cluster
-#                             )
-#                         except Exception as e:
-#                             qoa_logger.error(
-#                                 f"Error {type(e)} in LabelInspector: {e.__traceback__}"
-#                             )
-#                             traceback.print_exception(*sys.exc_info())
-#                     return results
-#                 else:
-#                     return {"Error": "Cannot concatenate data"}
-#             else:
-#                 return {"Error": "Historical data has not been set"}
-#         else:
-#             return {"Error": f"Unsupported data: {type(data)}"}
-#
-#     def update_data(self, data):
-#         if is_numpyarray(data):
-#             data = pd.DataFrame(data)
-#         if is_pddataframe(data):
-#             self.data = data
-#             return {"Response": "Success"}
-#         else:
-#             return {"Error": f"Unsupported data: {type(data)}"}

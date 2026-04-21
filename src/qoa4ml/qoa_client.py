@@ -76,15 +76,22 @@ class QoaClient[T: AbstractReport]:
 
         Notes
         -----
-        - If both `config_dict` and `config_path` are provided, the `config_dict` will take precedence.
-        - If neither `config_dict` nor `config_path` is provided, the client may attempt to fetch configurations from the `registration_url`.
-        - The method will raise an exception if the necessary configuration details are not found.
+        - If both ``config_dict`` and ``config_path`` are provided, ``config_dict`` takes precedence.
+        - If neither is provided, the client falls back to a bare ``ClientConfig`` and relies on ``registration_url`` to fetch a connector configuration.
+        - Raises ``ValueError`` if none of ``config_dict``, ``config_path``, or a usable ``registration_url`` is provided.
         """
         if config_dict is not None:
             self.configuration = ClientConfig.model_validate(config_dict)
-
-        if config_path is not None:
+        elif config_path is not None:
             self.configuration = ClientConfig.model_validate(load_config(config_path))
+        elif registration_url is not None:
+            # Start from an empty ClientConfig; the registration response will
+            # populate connector details below.
+            self.configuration = ClientConfig(client=ClientInfo())
+        else:
+            raise ValueError(
+                "QoaClient requires one of config_dict, config_path, or registration_url"
+            )
 
         set_logger_level(self.configuration.client.logging_level)
         self.client_config = self.configuration.client
@@ -398,29 +405,28 @@ class QoaClient[T: AbstractReport]:
 
         Notes
         -----
-        Uses threading to send reports asynchronously.
+        Only the connector lookup is serialized on `self.lock`. The actual
+        network I/O runs without the lock so concurrent `observe_metric`
+        and `timer` calls are never blocked by a slow AMQP publish.
         """
         with self.lock:
             if connectors is not None:
-                for connector in connectors:
-                    if isinstance(connector, AmqpConnector):
-                        if not connector.check_connection():
-                            connector.reconnect()
-                        connector.send_report(body_mess, corr_id=str(uuid.uuid4()))
-                    else:
-                        connector.send_report(body_mess)
+                target_connectors: list = list(connectors)
             elif self.default_connector:
-                chosen_connector = self.connector_list[self.default_connector]
-                if isinstance(chosen_connector, AmqpConnector):
-                    if not chosen_connector.check_connection():
-                        chosen_connector.reconnect()
-                    chosen_connector.send_report(body_mess, corr_id=str(uuid.uuid4()))
-                else:
-                    chosen_connector.send_report(body_mess)
+                target_connectors = [self.connector_list[self.default_connector]]
             else:
                 qoa_logger.error(
                     "No default connector, please specify the connector to use"
                 )
+                return
+
+        for connector in target_connectors:
+            if isinstance(connector, AmqpConnector):
+                if not connector.check_connection():
+                    connector.reconnect()
+                connector.send_report(body_mess, corr_id=str(uuid.uuid4()))
+            else:
+                connector.send_report(body_mess)
 
     def report(
         self,

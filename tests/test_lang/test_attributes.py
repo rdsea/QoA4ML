@@ -46,7 +46,11 @@ class TestDataQualityEnum:
         assert actual == expected
 
     def test_values(self):
-        assert DataQualityEnum.ACCURACY == "accuracy"
+        # Regression: `DataQualityEnum.ACCURACY` used to share the value
+        # "accuracy" with `MLModelQualityEnum.ACCURACY`, causing silent
+        # coercion collisions when Pydantic hydrated a `MetricNameEnum`
+        # union from JSON. Values are now namespaced.
+        assert DataQualityEnum.ACCURACY == "data_accuracy"
         assert DataQualityEnum.COMPLETENESS == "completeness"
         assert DataQualityEnum.TOTAL_ERRORS == "total_errors"
         assert DataQualityEnum.NULL_COUNT == "null_count"
@@ -72,10 +76,18 @@ class TestMLModelQualityEnum:
 
     def test_values(self):
         assert MLModelQualityEnum.AUC == "auc"
-        assert MLModelQualityEnum.ACCURACY == "accuracy"
+        # Regression: previously "accuracy", which collided with DataQualityEnum.
+        assert MLModelQualityEnum.ACCURACY == "model_accuracy"
         assert MLModelQualityEnum.MSE == "mse"
         assert MLModelQualityEnum.PRECISION == "precision"
         assert MLModelQualityEnum.RECALL == "recall"
+
+    def test_accuracy_does_not_collide_with_data_quality(self):
+        # The two ACCURACY members must have distinct string values so
+        # Pydantic coercion through MetricNameEnum can round-trip cleanly.
+        from qoa4ml.lang.attributes import DataQualityEnum
+
+        assert MLModelQualityEnum.ACCURACY.value != DataQualityEnum.ACCURACY.value
 
     def test_docstrings_assigned(self):
         assert MLModelQualityEnum.AUC.__doc__ is not None

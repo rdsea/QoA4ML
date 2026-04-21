@@ -148,7 +148,7 @@ class TestMetricNameEnumTypeAlias:
         from qoa4ml.lang.attributes import MLModelQualityEnum
 
         val: MetricNameEnum = MLModelQualityEnum.ACCURACY
-        assert val == "accuracy"
+        assert val == "model_accuracy"
 
     def test_accepts_data_quality_value(self):
         from qoa4ml.lang.attributes import DataQualityEnum

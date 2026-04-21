@@ -1,2 +1,0 @@
-The current ML services include a prediction model for predicting Power Grid for single based transiver station.
-The example BTS service is using trained models from [BTS Prediction Machine Learning Units](https://github.com/rdsea/IoTCloudSamples/tree/master/MLUnits/BTSPrediction)

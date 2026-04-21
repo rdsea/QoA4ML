@@ -2,6 +2,8 @@ import json
 import time
 
 import docker
+import requests
+from docker.errors import DockerException
 
 from qoa4ml.config.configs import ClientInfo, DockerProbeConfig
 from qoa4ml.connector.base_connector import BaseConnector
@@ -59,8 +61,6 @@ class DockerMonitoringProbe(Probe):
         """
         super().__init__(config, connector, client_info)
         self.config: DockerProbeConfig = config
-        if self.config.require_register:
-            self.obs_service_url = self.config.obs_service_url
         self.docker_client = docker.from_env()
 
     def create_report(self) -> str:
@@ -76,7 +76,8 @@ class DockerMonitoringProbe(Probe):
         -----
         - This method collects statistics for the specified Docker containers.
         - If the report dictionary is empty, it adds a 2-second delay to prevent fast looping.
-        - In case of a RuntimeError, an error message is returned in a JSON format.
+        - Docker/HTTP/OS failures are logged via qoa_logger and returned as a
+          JSON error so the probe thread never dies silently (service boundary: log + return JSON error, never crash probe thread).
         """
         try:
             reports = get_docker_stats(self.docker_client, self.config.container_list)
@@ -86,12 +87,10 @@ class DockerMonitoringProbe(Probe):
                 timestamp=time.time(),
                 container_reports=reports,
             )
-            reports_dict = docker_report.model_dump()
-            if not reports_dict:
-                time.sleep(2)
-            return json.dumps(reports_dict)
-        except RuntimeError:
+            return json.dumps(docker_report.model_dump())
+        except (DockerException, requests.RequestException, OSError) as error:
+            error_type = type(error).__name__
             qoa_logger.exception(
-                "RuntimeError occurred, possibly due to running in the background!"
+                f"Docker probe failed ({error_type}); returning error payload"
             )
-        return json.dumps({"error": "RuntimeError"})
+            return json.dumps({"error": error_type, "detail": str(error)})

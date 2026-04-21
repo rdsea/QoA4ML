@@ -158,3 +158,77 @@ class TestSocketCollectorStartCollecting:
         collector = SocketCollector(socket_collector_config, mock_process_report)
         collector.execution_flag = False
         assert collector.execution_flag is False
+
+
+@pytest.mark.integration
+class TestSocketCollectorStop:
+    def test_stop_closes_server_socket_and_exits_loop(self, mock_process_report):
+        # Regression: previously there was no stop() at all; the server
+        # socket leaked and the loop could only be halted by killing the
+        # process. Use a real socket on an ephemeral port.
+        import socket as _socket
+        import threading
+        import time
+
+        config = SocketCollectorConfig(
+            host="127.0.0.1", port=0, backlog=1, bufsize=1024
+        )
+        # Bind once to grab a free port, then close and let the collector bind.
+        probe = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+        probe.close()
+        config = SocketCollectorConfig(
+            host="127.0.0.1", port=port, backlog=1, bufsize=1024
+        )
+
+        collector = SocketCollector(config, mock_process_report)
+        server_thread = threading.Thread(target=collector.start_collecting, daemon=True)
+        server_thread.start()
+
+        # Let the server bind.
+        time.sleep(0.2)
+        collector.stop()
+        server_thread.join(timeout=3)
+        assert not server_thread.is_alive(), "server thread did not exit after stop()"
+        assert collector._server_socket is None
+
+    def test_process_report_exception_does_not_kill_server(self, tmp_path):
+        # Regression: process_report raising used to leak into accept loop.
+        import socket as _socket
+        import threading
+        import time
+
+        probe = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+        probe.close()
+
+        call_count = {"n": 0}
+
+        def bad_process(_report):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                raise ValueError("boom")
+
+        config = SocketCollectorConfig(
+            host="127.0.0.1", port=port, backlog=2, bufsize=1024
+        )
+        collector = SocketCollector(config, bad_process)
+        server_thread = threading.Thread(target=collector.start_collecting, daemon=True)
+        server_thread.start()
+        time.sleep(0.2)
+
+        try:
+            # Send two messages; first raises, second must still be processed.
+            for payload in (b"first", b"second"):
+                client = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+                client.connect(("127.0.0.1", port))
+                client.sendall(payload)
+                client.close()
+                time.sleep(0.15)
+        finally:
+            collector.stop()
+            server_thread.join(timeout=3)
+
+        assert call_count["n"] == 2, "server died after first process_report failure"

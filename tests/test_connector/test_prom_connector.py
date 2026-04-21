@@ -110,10 +110,13 @@ class TestPromConnectorOperations:
         connector.set("cpu_usage", 75.5)
         connector.metrics["cpu_usage"]["metric"].set.assert_called_once_with(75.5)
 
-    def test_set_counter_calls_inc(self, prom_info):
+    def test_set_counter_raises(self, prom_info):
+        # Regression: old implementation silently translated
+        # ``set("request_count", 5)`` to ``.inc(5)``. Counters do not
+        # support set semantics; the connector now rejects the call.
         connector = self._make_connector(prom_info)
-        connector.set("request_count", 5)
-        connector.metrics["request_count"]["metric"].inc.assert_called_with(5)
+        with pytest.raises(ValueError, match="Counter metrics cannot be set"):
+            connector.set("request_count", 5)
 
     def test_set_summary_calls_observe(self, prom_info):
         connector = self._make_connector(prom_info)
@@ -165,9 +168,16 @@ class TestPromConnectorOperations:
         connector.inc_violation("cpu_usage", 2)
         connector.metrics["cpu_usage"]["violation"].inc.assert_called_with(2)
 
-    def test_update_violation_count(self, prom_info):
+    def test_render_violation_counts(self, prom_info):
+        # Regression: previous ``update_violation_count`` rendered a
+        # payload and discarded it. ``render_violation_counts`` now returns
+        # the payload so callers can expose it.
         connector = self._make_connector(prom_info)
-        connector.update_violation_count()
+        mock_prometheus_client.generate_latest.reset_mock()
+        mock_prometheus_client.generate_latest.side_effect = lambda metric: b"# payload"
+        result = connector.render_violation_counts()
+        assert set(result.keys()) == set(prom_info["metric"].keys())
+        assert all(v == b"# payload" for v in result.values())
         assert mock_prometheus_client.generate_latest.call_count == len(
             prom_info["metric"]
         )

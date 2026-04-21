@@ -9,18 +9,22 @@ except ImportError:
     mqtt = None  # type: ignore[assignment]
 
 
-# TODO: this client handle both connector and collector
 class MqttConnector(BaseConnector):
     # This class will handle all the mqtt connection for each client application
     # FIX: what is host object?
     def __init__(self, host_object: HostObject, configuration: MQTTConnectorConfig):
-        # from paho.mqtt.client import Client as MqttClient
-        # from paho.mqtt.enums import CallbackAPIVersion
+        if mqtt is None:
+            raise ImportError(
+                "paho-mqtt is required for MqttConnector; install qoa4ml[ml]"
+            )
         # Init the host object to return message
         self.host_object = host_object
-        # Init the send/receive queue
-        self.pub_queue = configuration.in_queue
-        self.sub_queue = configuration.out_queue
+        # Config field semantics (per MQTTConnectorConfig):
+        #   in_queue  = topic to subscribe to for incoming messages
+        #   out_queue = topic to publish outgoing messages to
+        # Earlier code had these swapped; align publish-to-out, subscribe-to-in.
+        self.pub_queue = configuration.out_queue
+        self.sub_queue = configuration.in_queue
         # Create the mqtt client
         self.client = mqtt.Client(
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
@@ -60,3 +64,7 @@ class MqttConnector(BaseConnector):
     def send_data(self, body_message: str):
         # Send data in form of text message
         self.client.publish(self.pub_queue, body_message)
+
+    def send_report(self, body_message: str):
+        # Satisfies the BaseConnector contract; MQTT publish is the report channel.
+        self.send_data(body_message)

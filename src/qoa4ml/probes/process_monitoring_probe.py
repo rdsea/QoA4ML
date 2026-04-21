@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import time
 
@@ -16,10 +15,6 @@ from qoa4ml.utils.qoa_utils import (
     get_process_allowed_memory,
     report_proc_child_cpu,
     report_proc_mem,
-)
-
-logging.basicConfig(
-    format="%(asctime)s:%(levelname)s -- %(message)s", level=logging.INFO
 )
 
 
@@ -87,8 +82,6 @@ class ProcessMonitoringProbe(Probe):
 
         self.environment = config.environment
         self.process = psutil.Process(self.pid)
-        if self.config.require_register:
-            self.obs_service_url = self.config.obs_service_url
 
         self.metadata: dict[str, str] | resources_report_model.ProcessMetadata
         if self.environment == EnvironmentEnum.hpc:

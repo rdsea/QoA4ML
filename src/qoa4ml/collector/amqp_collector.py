@@ -112,13 +112,27 @@ class AmqpCollector(BaseCollector):
 
         Notes
         -----
-        If `host_object` is provided, it will handle message processing. Otherwise, the raw message will be logged.
+        If ``host_object`` is provided, it will handle message processing.
+        Otherwise, the message is decoded and logged. Malformed payloads
+        are logged and dropped instead of crashing the consumer thread.
         """
         if self.host_object is not None:
-            self.host_object.message_processing(ch, method, props, body)
-        else:
-            mess = json.loads(str(body.decode("utf-8")))
-            qoa_logger.info(mess)
+            try:
+                self.host_object.message_processing(ch, method, props, body)
+            except Exception as error:
+                qoa_logger.exception(
+                    f"AmqpCollector host_object raised ({type(error).__name__}); dropping frame"
+                )
+            return
+
+        try:
+            mess = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            qoa_logger.error(
+                f"AmqpCollector dropping malformed frame ({type(error).__name__}): {error}"
+            )
+            return
+        qoa_logger.info(mess)
 
     def start_collecting(self) -> None:
         """
@@ -136,15 +150,18 @@ class AmqpCollector(BaseCollector):
         self.in_channel.start_consuming()
 
     def stop(self) -> None:
-        """
-        Stop collecting messages and close the connection.
+        """Stop collecting and close both the channel and the connection.
 
-        Notes
-        -----
-        This method stops the consumer from collecting messages and closes the channel.
+        Previously only the channel was closed, leaking the underlying
+        ``pika.BlockingConnection`` across restart cycles.
         """
-        self.in_channel.stop_consuming()
-        self.in_channel.close()
+        try:
+            self.in_channel.stop_consuming()
+        finally:
+            try:
+                self.in_channel.close()
+            finally:
+                self.in_connection.close()
 
     def get_queue(self) -> str:
         """

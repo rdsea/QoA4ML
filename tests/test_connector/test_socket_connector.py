@@ -91,6 +91,49 @@ class TestSocketConnectorSendReport:
         connector.send_report("data")
 
     @patch("qoa4ml.connector.socket_connector.socket")
+    def test_send_report_timeout_is_logged_not_raised(
+        self, mock_socket_module, socket_config
+    ):
+        # Regression: previously only ConnectionRefusedError was caught;
+        # TimeoutError / BrokenPipeError / OSError propagated to caller.
+        mock_sock = MagicMock()
+        mock_socket_module.socket.return_value = mock_sock
+        mock_socket_module.AF_INET = 2
+        mock_socket_module.SOCK_STREAM = 1
+        mock_sock.sendall.side_effect = TimeoutError("timed out")
+
+        connector = SocketConnector(socket_config)
+        connector.send_report("data")  # must NOT raise
+        mock_sock.close.assert_called_once()
+
+    @patch("qoa4ml.connector.socket_connector.socket")
+    def test_send_report_broken_pipe_is_logged_not_raised(
+        self, mock_socket_module, socket_config
+    ):
+        mock_sock = MagicMock()
+        mock_socket_module.socket.return_value = mock_sock
+        mock_socket_module.AF_INET = 2
+        mock_socket_module.SOCK_STREAM = 1
+        mock_sock.sendall.side_effect = BrokenPipeError()
+
+        connector = SocketConnector(socket_config)
+        connector.send_report("data")  # must NOT raise
+        mock_sock.close.assert_called_once()
+
+    @patch("qoa4ml.connector.socket_connector.socket")
+    def test_send_report_sets_socket_timeout(self, mock_socket_module, socket_config):
+        # Regression: no timeout meant a slow aggregator hung the probe
+        # thread indefinitely.
+        mock_sock = MagicMock()
+        mock_socket_module.socket.return_value = mock_sock
+        mock_socket_module.AF_INET = 2
+        mock_socket_module.SOCK_STREAM = 1
+
+        connector = SocketConnector(socket_config)
+        connector.send_report("data")
+        mock_sock.settimeout.assert_called_once_with(connector.timeout)
+
+    @patch("qoa4ml.connector.socket_connector.socket")
     def test_send_report_serializes_complex_data(
         self, mock_socket_module, socket_config
     ):

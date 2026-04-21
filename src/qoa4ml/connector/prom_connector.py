@@ -41,12 +41,25 @@ class PromConnector:
             self.metrics[key]["metric"].dec(num)
 
     def set(self, key, num=1):
-        if self.info[key]["Type"] == "Gauge":
+        """Set a Gauge or observe a Histogram/Summary value.
+
+        Raises ``ValueError`` for Counter keys — Counters do not support
+        `set`; callers must use :meth:`inc` instead. Previous silent
+        translation to ``.inc(num)`` masked misuse.
+        """
+        metric_type = self.info[key]["Type"]
+        if metric_type == "Gauge":
             self.metrics[key]["metric"].set(num)
-        elif self.info[key]["Type"] == "Counter":
-            self.metrics[key]["metric"].inc(num)
-        elif self.info[key]["Type"] in ["Histogram", "Summary"]:
+        elif metric_type in ("Histogram", "Summary"):
             self.metrics[key]["metric"].observe(num)
+        elif metric_type == "Counter":
+            raise ValueError(
+                f"PromConnector.set({key!r}): Counter metrics cannot be set; use inc() instead"
+            )
+        else:
+            raise ValueError(
+                f"PromConnector.set({key!r}): unknown type {metric_type!r}"
+            )
 
     def observe(self, key, val):
         if self.info[key]["Type"] in ["Summary", "Histogram"]:
@@ -55,6 +68,15 @@ class PromConnector:
     def inc_violation(self, key, num=1):
         self.metrics[key]["violation"].inc(num)
 
-    def update_violation_count(self):
-        for key in self.metrics:
-            pr.generate_latest(self.metrics[key]["violation"])
+    def render_violation_counts(self) -> dict[str, bytes]:
+        """Render the current violation counters as Prometheus text payloads.
+
+        Replaces the legacy ``update_violation_count`` whose name implied
+        mutation but only called :func:`prometheus_client.generate_latest`
+        (a renderer) and threw the result away. Callers can now use the
+        returned bytes for exposition endpoints.
+        """
+        return {
+            key: pr.generate_latest(self.metrics[key]["violation"])
+            for key in self.metrics
+        }

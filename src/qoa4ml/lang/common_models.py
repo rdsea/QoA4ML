@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from qoa4ml.lang.datamodel_enum import (
     AggregateFunctionEnum,
@@ -9,7 +9,7 @@ from qoa4ml.lang.datamodel_enum import (
 
 class Metric(BaseModel):
     metric_name: MetricNameEnum
-    records: list[dict | float | int | tuple | str] = []
+    records: list[dict | float | int | tuple | str] = Field(default_factory=list)
     unit: str | None = None
     description: str | None = None
 

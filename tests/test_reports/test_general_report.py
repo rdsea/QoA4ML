@@ -1,5 +1,3 @@
-import copy
-import time
 from uuid import uuid4
 
 import pytest
@@ -13,23 +11,6 @@ from qoa4ml.reports.ml_report_model import (
     GeneralApplicationReportModel,
     MicroserviceInstance,
 )
-
-
-class ConcreteGeneralApplicationReport(GeneralApplicationReport):
-    """Concrete subclass providing the missing generate_report implementation."""
-
-    def generate_report(self, reset=True, corr_id=None):
-        self.report.metadata["client_config"] = copy.deepcopy(self.client_config)
-        self.report.metadata["timestamp"] = time.time()
-        if corr_id is not None:
-            self.report.metadata["corr_id"] = corr_id
-        self.report.metadata["runtime"] = (
-            self.report.metadata["timestamp"] - self.init_time
-        )
-        report = copy.deepcopy(self.report)
-        if reset:
-            self.reset()
-        return report
 
 
 @pytest.fixture()
@@ -49,12 +30,12 @@ def client_config(instance_id):
 
 @pytest.fixture()
 def app_report(client_config):
-    return ConcreteGeneralApplicationReport(client_config)
+    return GeneralApplicationReport(client_config)
 
 
 class TestGeneralApplicationReportCreation:
     def test_init_stores_deep_copy_of_config(self, client_config):
-        report = ConcreteGeneralApplicationReport(client_config)
+        report = GeneralApplicationReport(client_config)
         assert report.client_config == client_config
         assert report.client_config is not client_config
 
@@ -171,6 +152,43 @@ class TestReset:
     def test_reset_preserves_execution_instance_identity(self, app_report, instance_id):
         app_report.reset()
         assert str(app_report.execution_instance.id) == instance_id
+
+
+class TestGenerateReport:
+    def test_generate_report_returns_deep_copy_with_metadata(
+        self, app_report, client_config
+    ):
+        # Regression: GeneralApplicationReport inherits from AbstractReport
+        # which requires `generate_report`. Before this fix the method was
+        # missing, making the class uninstantiable at runtime.
+        metric = Metric(metric_name="latency", records=[0.5])
+        app_report.observe_metric(ReportTypeEnum.service, "gateway", metric)
+
+        report = app_report.generate_report()
+
+        assert isinstance(report, GeneralApplicationReportModel)
+        assert report.metrics[0].metric_name == "latency"
+        assert "timestamp" in report.metadata
+        assert "runtime" in report.metadata
+        assert report.metadata["client_config"].name == client_config.name
+
+    def test_generate_report_with_corr_id(self, app_report):
+        report = app_report.generate_report(corr_id="run-42")
+        assert report.metadata["corr_id"] == "run-42"
+
+    def test_generate_report_resets_by_default(self, app_report):
+        metric = Metric(metric_name="latency", records=[0.5])
+        app_report.observe_metric(ReportTypeEnum.service, "gateway", metric)
+
+        app_report.generate_report()
+        assert app_report.report.metrics == []
+
+    def test_generate_report_no_reset_keeps_state(self, app_report):
+        metric = Metric(metric_name="latency", records=[0.5])
+        app_report.observe_metric(ReportTypeEnum.service, "gateway", metric)
+
+        app_report.generate_report(reset=False)
+        assert len(app_report.report.metrics) == 1
 
 
 class TestProcessPreviousReport:

@@ -6,8 +6,7 @@ import pathlib
 import re
 import shlex
 import subprocess
-import time
-from threading import Thread
+from functools import lru_cache
 from typing import Any
 
 import numpy as np
@@ -118,6 +117,7 @@ def make_folder(temp_path: str) -> bool:
         return False
 
 
+@lru_cache(maxsize=1)
 def get_cgroup_version() -> str:
     """
     Retrieve the current cgroup version.
@@ -125,29 +125,41 @@ def get_cgroup_version() -> str:
     Returns
     -------
     str
-        The cgroup version ("v1" or "v2").
+        The cgroup version ("v1" or "v2"). Defaults to "v1" on systems
+        where `mount` cannot be executed (e.g., Windows, minimal images).
 
     Notes
     -----
-    Uses subprocess to execute the `mount` command and grep for cgroup version.
+    Result is cached; the subprocess only runs on first call. Prior
+    versions invoked this at module import, which slowed startup and
+    broke imports on systems without `mount`.
     """
-    proc1 = subprocess.Popen("mount", stdout=subprocess.PIPE)
-    proc2 = subprocess.Popen(
-        shlex.split("grep cgroup"),
-        stdin=proc1.stdout,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    if proc1.stdout:
-        proc1.stdout.close()
-    out, _ = proc2.communicate()
+    try:
+        proc1 = subprocess.Popen("mount", stdout=subprocess.PIPE)
+        proc2 = subprocess.Popen(
+            shlex.split("grep cgroup"),
+            stdin=proc1.stdout,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if proc1.stdout:
+            proc1.stdout.close()
+        out, _ = proc2.communicate()
+    except (FileNotFoundError, OSError) as error:
+        qoa_logger.debug(
+            f"Could not detect cgroup version ({type(error).__name__}); defaulting to v1"
+        )
+        return "v1"
     return "v2" if "cgroup2" in out.decode() else "v1"
 
 
-if get_cgroup_version() == "v2":
-    CGROUP_VERSION = "v2"
-else:
-    CGROUP_VERSION = "v1"
+def __getattr__(name: str) -> Any:
+    # Backward-compat shim: code that used the module-level CGROUP_VERSION
+    # constant still works, but the subprocess call is deferred to first
+    # access rather than running at import time.
+    if name == "CGROUP_VERSION":
+        return get_cgroup_version()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def set_logger_level(logging_level: int) -> None:
@@ -523,130 +535,6 @@ def convert_to_kbyte(value: float) -> float:
     return value / 1024.0
 
 
-###################### SYSTEM REPORT ######################
-
-sys_monitor_flag = False
-process_monitor_flag = False
-doc_monitor_flag = False
-
-
-def system_report(
-    client, interval: int, to_mb: bool = True, to_gb: bool = False, to_kb: bool = False
-) -> None:
-    """
-    Generate a system report and send it to the client at regular intervals.
-
-    Parameters
-    ----------
-    client : Any
-        The client to send the report to.
-    interval : int
-        The time interval in seconds between reports.
-    to_mb : bool, optional
-        Convert network I/O values to megabytes, default is True.
-    to_gb : bool, optional
-        Convert network I/O values to gigabytes, default is False.
-    to_kb : bool, optional
-        Convert network I/O values to kilobytes, default is False.
-
-    Notes
-    -----
-    - Collects CPU, memory, and network I/O statistics.
-    - Logs errors if any occur during data collection or report sending.
-    - Sleeps for the specified interval between reports.
-    """
-    report: dict[str, Any] = {}
-    last_net_value: dict[str, float] = {"sent": 0, "receive": 0}
-    while sys_monitor_flag:
-        try:
-            report["sys_cpu_stats"] = get_sys_cpu()
-        except Exception:
-            qoa_logger.exception("Error in report CPU stat")
-        try:
-            report["sys_mem_stats"] = get_sys_mem()
-        except Exception:
-            qoa_logger.exception("Error in report memory stat")
-        try:
-            report["sys_net_stats"] = get_sys_net()
-            sent: float = 0
-            receive: float = 0
-            if to_mb:
-                sent = convert_to_mbyte(psutil.net_io_counters().bytes_sent)
-                receive = convert_to_mbyte(psutil.net_io_counters().bytes_recv)
-            elif to_gb:
-                sent = convert_to_gbyte(psutil.net_io_counters().bytes_sent)
-                receive = convert_to_gbyte(psutil.net_io_counters().bytes_recv)
-            elif to_kb:
-                sent = convert_to_kbyte(psutil.net_io_counters().bytes_sent)
-                receive = convert_to_kbyte(psutil.net_io_counters().bytes_recv)
-            else:
-                sent = psutil.net_io_counters().bytes_sent
-                receive = psutil.net_io_counters().bytes_recv
-
-            curr_net_value = {"sent": sent, "receive": receive}
-            report["sys_net_send"] = curr_net_value["sent"] - last_net_value["sent"]
-            report["sys_net_receive"] = (
-                curr_net_value["receive"] - last_net_value["receive"]
-            )
-            last_net_value = curr_net_value.copy()
-        except Exception:
-            qoa_logger.exception("Error in report network stat")
-        try:
-            client.report(report=report)
-        except Exception:
-            qoa_logger.exception("Error in sent system report")
-        time.sleep(interval)
-
-
-def sys_monitor(client, interval: int) -> None:
-    """
-    Start monitoring system reports.
-
-    Parameters
-    ----------
-    client : Any
-        The client to send the report to.
-    interval : int
-        The time interval in seconds between reports.
-
-    Notes
-    -----
-    - Starts a new thread to generate system reports at regular intervals.
-    """
-    sub_thread = Thread(target=system_report, args=(client, interval))
-    sub_thread.start()
-
-
-###################### PROCESS REPORT ######################
-
-# def process_report(client, interval:int, pid:int = None):
-#     report = {}
-#     while procMonitorFlag:
-#         try:
-#             report["proc_cpu_stats"] = get_proc_cpu()
-#         except Exception as e:
-#             qoaLogger.error("Error {} in report process cpu stat: {}".format(type(e),e.__traceback__))
-#             traceback.print_exception(*sys.exc_info())
-#         try:
-#             report["proc_mem_stats"] = get_proc_mem()
-#         except Exception as e:
-#             qoaLogger.error("Error {} in report process memory stat: {}".format(type(e),e.__traceback__))
-#             traceback.print_exception(*sys.exc_info())
-#         try:
-#             client.report(report=report)
-#         except Exception as e:
-#             qoaLogger.error("Error {} in sent process report: {}".format(type(e),e.__traceback__))
-#             traceback.print_exception(*sys.exc_info())
-#         time.sleep(interval)
-
-
-# def process_monitor(client, interval:int, pid:int = None):
-#     if (pid == None):
-#         pid = os.getpid()
-#     sub_thread = Thread(target=process_report, args=(client, interval, pid))
-#     sub_thread.start()
-
-
 ###################### DOCKER REPORT ######################
 
 
@@ -744,36 +632,30 @@ def merge_report(f_report: dict, i_report: dict, prio: bool = True) -> dict:
     return f_report
 
 
-def get_dict_at(dictionary: dict, i: int = 0):
-    """
-    Retrieve the key-value pair at a specific index in a dictionary.
+def get_dict_at(dictionary: dict, i: int = 0) -> tuple:
+    """Retrieve the ``(key, value)`` pair at a specific insertion-order index.
 
     Parameters
     ----------
     dictionary : dict
-        The dictionary from which to retrieve the key-value pair.
+        Source dictionary.
     i : int, optional
-        The index of the key-value pair to retrieve, default is 0.
+        Index of the pair to retrieve, default ``0``.
 
     Returns
     -------
     tuple
-        A tuple containing the key and the value at the specified index.
+        ``(key, value)`` pair at position ``i``.
 
     Raises
     ------
     IndexError
-        If the index is out of range.
-
-    Notes
-    -----
-    - Logs an error and prints the exception traceback if an error occurs.
+        If ``i`` is out of range. Previously the error was logged and
+        :data:`None` returned, which caused callers unpacking the result
+        to hit :class:`TypeError` instead of a clear index error.
     """
-    try:
-        keys = list(dictionary.keys())
-        return keys[i], dictionary[keys[i]]
-    except (IndexError, KeyError):
-        qoa_logger.exception("Error in get_dict_at")
+    keys = list(dictionary.keys())
+    return keys[i], dictionary[keys[i]]
 
 
 def get_file_dir(file: str, to_string: bool = True):
@@ -868,7 +750,7 @@ def get_process_allowed_memory() -> float | None:
     -----
     - Supports both cgroup v1 and v2 formats to get the memory limit.
     """
-    if CGROUP_VERSION == "v1":
+    if get_cgroup_version() == "v1":
         with open("/proc/self/cgroup") as file:
             for line in file:
                 parts = line.strip().split(":")

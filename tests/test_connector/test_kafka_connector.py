@@ -30,10 +30,13 @@ def reset_producer_mock():
 
 class TestKafkaConnectorInit:
     def test_init_creates_producer(self, kafka_config):
+        # Regression: confluent_kafka.Producer takes a single dict config,
+        # not the kafka-python `bootstrap_servers=` kwarg. The previous
+        # invocation raised TypeError at runtime.
         connector = KafkaConnector(kafka_config)
 
         mock_confluent_kafka.Producer.assert_called_once_with(
-            bootstrap_servers="localhost:9092",
+            {"bootstrap.servers": "localhost:9092"}
         )
         assert connector.topic == "test-topic"
         assert connector.conf is kafka_config

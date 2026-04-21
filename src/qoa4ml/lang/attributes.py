@@ -26,8 +26,13 @@ class QoAttribute(StrEnum, metaclass=MetaEnum):
 
 
 class DataQualityEnum(QoAttribute):
-    ACCURACY = "accuracy"
-    """The ratio between correct and total data the service received (%)"""
+    ACCURACY = "data_accuracy"
+    """The ratio between correct and total data the service received (%).
+
+    The string value is namespaced (``data_accuracy``) so it cannot collide
+    with ``MLModelQualityEnum.ACCURACY`` when both feed the ``MetricNameEnum``
+    union during Pydantic coercion.
+    """
 
     COMPLETENESS = "completeness"
     """The ratio between received and expected number of data attributes sent to the service"""
@@ -64,8 +69,13 @@ class MLModelQualityEnum(QoAttribute):
     AUC = "auc"
     """The measure of the ability of a classifier to distinguish between classes and is used as a summary of the ROC curve"""
 
-    ACCURACY = "accuracy"
-    """Can be measured in different ways such as confidence score in classification models"""
+    ACCURACY = "model_accuracy"
+    """Can be measured in different ways such as confidence score in classification models.
+
+    The string value is namespaced (``model_accuracy``) to keep it distinct
+    from ``DataQualityEnum.ACCURACY`` (``data_accuracy``) when both feed the
+    ``MetricNameEnum`` union.
+    """
 
     MSE = "mse"
     """Mean square error used for regression models"""

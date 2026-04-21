@@ -67,7 +67,9 @@ def get_gpu_load(gpu_list):
                 with open(data["path"] + "/load") as f:
                     gpu["load"] = float(f.read()) / 10.0
         elif gpu["type"] == "discrete":
-            qoa_logger.info("TODO discrete GPU")
+            # Discrete-GPU load read is not implemented yet; the Jetson
+            # platforms this probe targets are integrated-GPU by default.
+            qoa_logger.debug(f"Jetson discrete-GPU load not implemented for {name!r}")
         gpu_load[name] = gpu
     return gpu_load
 

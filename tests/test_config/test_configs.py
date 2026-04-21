@@ -45,7 +45,7 @@ class TestClientInfo:
         assert info.role == ""
         assert info.run_id == ""
         assert info.environment == EnvironmentEnum.edge
-        assert info.custom_info == ""
+        assert info.custom_info == {}
         assert info.logging_level == 2
 
     def test_with_values(self):
@@ -62,13 +62,26 @@ class TestClientInfo:
         assert info.logging_level == 4
         assert info.custom_info == {"key": "value"}
 
-    def test_custom_info_accepts_string(self):
-        info = ClientInfo(custom_info="some_info")
-        assert info.custom_info == "some_info"
+    def test_custom_info_rejects_string(self):
+        # Regression: custom_info used to be `dict | str` with default "",
+        # which leaked string values into report metadata. It is now
+        # strictly a dict.
+        import pydantic
+
+        with pytest.raises(pydantic.ValidationError):
+            ClientInfo(custom_info="some_info")
 
     def test_custom_info_accepts_dict(self):
         info = ClientInfo(custom_info={"a": 1})
         assert info.custom_info == {"a": 1}
+
+    def test_custom_info_default_is_not_shared(self):
+        # default_factory=dict ensures instances don't share a mutable
+        # default, which was a latent footgun with the old `default=""`.
+        a = ClientInfo()
+        b = ClientInfo()
+        a.custom_info["x"] = 1
+        assert b.custom_info == {}
 
 
 # ---------------------------------------------------------------------------
@@ -384,6 +397,42 @@ class TestClientConfig:
         data = {**sample_client_config_dict, "probes": []}
         cfg = ClientConfig(**data)
         assert cfg.probes == []
+
+    def test_jetson_probes_dispatch_to_concrete_classes(
+        self, sample_client_config_dict
+    ):
+        # Regression: JetsonSystemProbeConfig and JetsonProcessesProbeConfig
+        # used to share probe_type="jetson_sys" and were absent from the
+        # dispatch map, so their specific fields were silently lost.
+        from qoa4ml.config.configs import (
+            JetsonProcessesProbeConfig,
+            JetsonSystemProbeConfig,
+        )
+
+        data = {
+            **sample_client_config_dict,
+            "probes": [
+                {
+                    "probe_type": "jetson_sys",
+                    "frequency": 1,
+                    "require_register": False,
+                    "log_latency_flag": False,
+                    "node_name": "jetson-01",
+                },
+                {
+                    "probe_type": "jetson_proc",
+                    "frequency": 1,
+                    "require_register": False,
+                    "log_latency_flag": False,
+                    "node_name": "jetson-01",
+                },
+            ],
+        }
+        cfg = ClientConfig(**data)
+        assert isinstance(cfg.probes[0], JetsonSystemProbeConfig)
+        assert isinstance(cfg.probes[1], JetsonProcessesProbeConfig)
+        assert cfg.probes[0].node_name == "jetson-01"
+        assert cfg.probes[1].node_name == "jetson-01"
 
 
 # ---------------------------------------------------------------------------

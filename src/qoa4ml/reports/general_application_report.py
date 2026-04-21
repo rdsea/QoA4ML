@@ -8,6 +8,7 @@ from qoa4ml.lang.common_models import Metric
 from qoa4ml.lang.datamodel_enum import ReportTypeEnum
 from qoa4ml.reports.abstract_report import AbstractReport
 from qoa4ml.reports.ml_report_model import (
+    BaseReport,
     FlattenMetric,
     GeneralApplicationReportModel,
     MicroserviceInstance,
@@ -169,3 +170,34 @@ class GeneralApplicationReport(AbstractReport):
             previous_instances=self.previous_reports,
         )
         self.report.metrics.append(flatten_metric)
+
+    def generate_report(
+        self, reset: bool = True, corr_id: str | None = None
+    ) -> BaseReport:
+        """
+        Generate the report and optionally reset the current report state.
+
+        Parameters
+        ----------
+        reset : bool, optional
+            Whether to reset the report state after generating, default is True.
+        corr_id : str, optional
+            Correlation ID for the report, default is None.
+
+        Returns
+        -------
+        BaseReport
+            A deep copy of the current report with metadata attached.
+        """
+        self.report.metadata["client_config"] = copy.deepcopy(self.client_config)
+        self.report.metadata["timestamp"] = time.time()
+        if corr_id is not None:
+            self.report.metadata["corr_id"] = corr_id
+        self.report.metadata["runtime"] = (
+            self.report.metadata["timestamp"] - self.init_time
+        )
+
+        report = copy.deepcopy(self.report)
+        if reset:
+            self.reset()
+        return report

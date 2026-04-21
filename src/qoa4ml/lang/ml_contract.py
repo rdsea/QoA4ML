@@ -81,7 +81,7 @@ class MLSpecificConstraint(BaseConstraint):
 
 
 class DataConstraint(BaseConstraint):
-    name: str = "data_constaint"
+    name: str = "data_constraint"
 
 
 class ServiceConstraint(BaseConstraint):

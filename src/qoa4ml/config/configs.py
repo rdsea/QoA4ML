@@ -39,20 +39,34 @@ class ClientInfo(BaseModel):
         description="Describes the functionality or role of this client in the pipeline",
     )
     application_name: str = Field(
-        default="", description="Name of the application this client is part of"
+        default="",
+        description=(
+            "Name of the application this client is part of. "
+            "Informational only: not read by the current runtime; "
+            "preserved for forward-compatibility with user YAMLs."
+        ),
     )
     role: str = Field(
-        default="", description="Role of this client, e.g. 'producer' or 'consumer'"
+        default="",
+        description=(
+            "Role of this client, e.g. 'producer' or 'consumer'. "
+            "Informational only: not read by the current runtime."
+        ),
     )
     run_id: str = Field(
-        default="", description="Identifier for the current run or experiment"
+        default="",
+        description=(
+            "Identifier for the current run or experiment. "
+            "Informational only: not read by the current runtime."
+        ),
     )
     environment: EnvironmentEnum = Field(
         default=EnvironmentEnum.edge,
         description="The environment where the qoa_client is run",
     )
-    custom_info: dict | str = Field(
-        default="", description="Additional information that you can add"
+    custom_info: dict = Field(
+        default_factory=dict,
+        description="Additional information that you can add; free-form key/value dict",
     )
     logging_level: int = Field(
         default=2,
@@ -234,6 +248,8 @@ class ClientConfig(BaseModel):
             "process": ProcessProbeConfig,
             "docker": DockerProbeConfig,
             "system": SystemProbeConfig,
+            "jetson_sys": JetsonSystemProbeConfig,
+            "jetson_proc": JetsonProcessesProbeConfig,
         }
         probes = values.get("probes", [])
         if probes:
@@ -328,7 +344,7 @@ class DockerProbeConfig(ProbeConfig):
         default="docker", description="Fixed probe type identifier for Docker probes"
     )
     container_list: list[str] = Field(
-        default=[],
+        default_factory=list,
         description="List of container names or IDs to monitor; empty means monitor all",
     )
 
@@ -341,7 +357,8 @@ class JetsonSystemProbeConfig(ProbeConfig):
         description="Fixed probe type identifier for Jetson system probes",
     )
     node_name: str | None = Field(
-        description="Human-readable name of the Jetson node being monitored"
+        default=None,
+        description="Human-readable name of the Jetson node being monitored",
     )
 
 
@@ -349,11 +366,12 @@ class JetsonProcessesProbeConfig(ProbeConfig):
     """Probe configuration for monitoring processes on an NVIDIA Jetson device."""
 
     probe_type: str = Field(
-        default="jetson_sys",
+        default="jetson_proc",
         description="Fixed probe type identifier for Jetson process probes",
     )
     node_name: str | None = Field(
-        description="Human-readable name of the Jetson node being monitored"
+        default=None,
+        description="Human-readable name of the Jetson node being monitored",
     )
 
 

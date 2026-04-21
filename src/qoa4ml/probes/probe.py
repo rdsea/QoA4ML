@@ -5,6 +5,7 @@ from typing import Any
 
 from qoa4ml.config.configs import ClientInfo, ProbeConfig
 from qoa4ml.connector.base_connector import BaseConnector
+from qoa4ml.utils.logger import qoa_logger
 from qoa4ml.utils.qoa_utils import make_folder
 from qoa4ml.utils.repeated_timer import RepeatedTimer
 
@@ -35,8 +36,27 @@ class Probe(ABC):
         pass
 
     def reporting(self):
-        report = self.create_report()
-        self.connector.send_report(report)
+        """Generate one report and send it.
+
+        Errors are logged and suppressed so a single failing tick (transient
+        network error, malformed sample, etc.) does not kill the probe thread
+        and silently end monitoring — service-boundary resilience.
+        """
+        try:
+            report = self.create_report()
+        except Exception as error:
+            error_type = type(error).__name__
+            qoa_logger.exception(
+                f"Probe {type(self).__name__} create_report failed ({error_type})"
+            )
+            return
+        try:
+            self.connector.send_report(report)
+        except Exception as error:
+            error_type = type(error).__name__
+            qoa_logger.exception(
+                f"Probe {type(self).__name__} send_report failed ({error_type})"
+            )
 
     def start_reporting(self, background: bool = True):
         """
@@ -52,6 +72,7 @@ class Probe(ABC):
     def stop_reporting(self):
         if not hasattr(self, "timer"):
             raise RuntimeError("Can't stop reporting when the timer is not created yet")
+        self.execution_flag = False
         self.timer.stop()
 
     def send_report(self, report):

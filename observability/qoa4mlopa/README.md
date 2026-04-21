@@ -24,7 +24,7 @@ $docker run -p 8181:8181 openpolicyagent/opa:latest run --server --set=decision_
 ```
 ## Samples of contracts and core QoA4ML terms
 
-You can find [samples of contracts](../../language/qoa4mlopa/), the core QoA4ML terms are in [the languages directory](../../language/). Examples of runtime metrics are in [examples](../../examples/qoa4mlopa/)
+You can find [samples of contracts](../../language/qoa4mlopa/); the core QoA4ML terms are in [the language directory](../../language/). Worked examples live alongside this README in the per-scenario directories (`bts_example/`, `malware_detection/`, `object_detection/`).
 
 ## Add a contract
 

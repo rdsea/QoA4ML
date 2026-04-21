@@ -315,6 +315,57 @@ class TestAsynReport:
         client = QoaClient(report_cls=MLReport, config_dict=config)
         client.asyn_report('{"test": 1}')
 
+    def test_asyn_report_does_not_hold_lock_during_send(self):
+        # Regression: previously ``asyn_report`` wrapped the entire body
+        # in ``with self.lock:`` including the blocking network call,
+        # starving concurrent observe_metric calls. The lock must only
+        # cover connector lookup.
+        #
+        # Deterministic check: replace the client lock with an instrumented
+        # wrapper that records whether it is held during send_report. No
+        # wall-clock timings, no thread-ordering assumptions.
+        import threading
+
+        class _SpyLock:
+            def __init__(self):
+                self._lock = threading.Lock()
+                self.held = False
+
+            def __enter__(self):
+                self._lock.__enter__()
+                self.held = True
+                return self
+
+            def __exit__(self, *exc):
+                self.held = False
+                return self._lock.__exit__(*exc)
+
+            def acquire(self, *args, **kwargs):
+                return self._lock.acquire(*args, **kwargs)
+
+            def release(self):
+                return self._lock.release()
+
+        client = _make_client()
+        spy = _SpyLock()
+        client.lock = spy
+
+        observed_states: list[bool] = []
+
+        def recording_send(*args, **kwargs):
+            observed_states.append(spy.held)
+
+        connector = MagicMock(spec=BaseConnector)
+        connector.send_report.side_effect = recording_send
+        client.connector_list["debug_connector"] = connector
+
+        client.asyn_report('{"x": 1}')
+
+        assert observed_states, "send_report was never invoked"
+        assert observed_states == [False], (
+            f"lock was held during network I/O: {observed_states}"
+        )
+
 
 class TestGetClientConfig:
     def test_returns_client_info(self):

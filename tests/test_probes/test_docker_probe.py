@@ -1,6 +1,9 @@
 import json
 from unittest.mock import MagicMock, patch
 
+import docker.errors
+import requests
+
 from qoa4ml.config.configs import ClientInfo, DebugConnectorConfig, DockerProbeConfig
 from qoa4ml.connector.debug_connector import DebugConnector
 from qoa4ml.reports.resources_report_model import (
@@ -168,9 +171,11 @@ class TestDockerMonitoringProbeCreateReport:
     @patch("qoa4ml.probes.docker_monitoring_probe.docker")
     @patch(
         "qoa4ml.probes.docker_monitoring_probe.get_docker_stats",
-        side_effect=RuntimeError("Docker daemon not running"),
+        side_effect=docker.errors.DockerException("Docker daemon not running"),
     )
-    def test_create_report_runtime_error(self, mock_stats, mock_docker):
+    def test_create_report_docker_daemon_error(self, mock_stats, mock_docker):
+        # Regression: real Docker SDK errors must produce a graceful JSON
+        # payload, not escape into the probe thread and kill it.
         from qoa4ml.probes.docker_monitoring_probe import DockerMonitoringProbe
 
         mock_docker.from_env.return_value = MagicMock()
@@ -178,9 +183,41 @@ class TestDockerMonitoringProbeCreateReport:
         probe = DockerMonitoringProbe(
             _make_probe_config(), _make_connector(), _make_client_info()
         )
-        report_str = probe.create_report()
-        report = json.loads(report_str)
-        assert report == {"error": "RuntimeError"}
+        report = json.loads(probe.create_report())
+        assert report["error"] == "DockerException"
+        assert "Docker daemon not running" in report["detail"]
+
+    @patch("qoa4ml.probes.docker_monitoring_probe.docker")
+    @patch(
+        "qoa4ml.probes.docker_monitoring_probe.get_docker_stats",
+        side_effect=requests.ConnectionError("daemon unreachable"),
+    )
+    def test_create_report_connection_error(self, mock_stats, mock_docker):
+        from qoa4ml.probes.docker_monitoring_probe import DockerMonitoringProbe
+
+        mock_docker.from_env.return_value = MagicMock()
+
+        probe = DockerMonitoringProbe(
+            _make_probe_config(), _make_connector(), _make_client_info()
+        )
+        report = json.loads(probe.create_report())
+        assert report["error"] == "ConnectionError"
+
+    @patch("qoa4ml.probes.docker_monitoring_probe.docker")
+    @patch(
+        "qoa4ml.probes.docker_monitoring_probe.get_docker_stats",
+        side_effect=OSError("socket closed"),
+    )
+    def test_create_report_os_error(self, mock_stats, mock_docker):
+        from qoa4ml.probes.docker_monitoring_probe import DockerMonitoringProbe
+
+        mock_docker.from_env.return_value = MagicMock()
+
+        probe = DockerMonitoringProbe(
+            _make_probe_config(), _make_connector(), _make_client_info()
+        )
+        report = json.loads(probe.create_report())
+        assert report["error"] == "OSError"
 
     @patch("qoa4ml.probes.docker_monitoring_probe.docker")
     @patch("qoa4ml.probes.docker_monitoring_probe.get_docker_stats")

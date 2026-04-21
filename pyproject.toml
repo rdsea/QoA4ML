@@ -94,7 +94,6 @@ dev = [
 
 
 [tool.ruff]
-exclude = ["example/bts/"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -104,7 +103,7 @@ docstring-code-line-length = 10
 convention = "pep257" # Accepts: "google", "numpy", or "pep257".
 
 [tool.ruff.lint]
-exclude = ["src/qoa4ml/utils/pynvml_forked.py", "example/bts/"]
+exclude = ["src/qoa4ml/utils/pynvml_forked.py"]
 select = [
   "F",   # Pyflakes
   "E",   # Pycode styles
@@ -143,6 +142,7 @@ disable_error_code = [
 markers = [
   "requires_docker: tests that require a running Docker daemon",
   "requires_gpu: tests that require an NVIDIA GPU",
+  "integration: tests that use real sockets, threads, or wall-clock timing",
 ]
 
 [tool.coverage.run]

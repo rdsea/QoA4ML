@@ -7,7 +7,9 @@ from .base_connector import BaseConnector
 
 def kafka_delivery_error(err, msg):
     if err is not None:
-        qoa_logger.error(f"Message delivery failed: {err}")
+        topic = getattr(msg, "topic", lambda: None)()
+        key = getattr(msg, "key", lambda: None)()
+        qoa_logger.error(f"Kafka delivery failed on topic={topic!r} key={key!r}: {err}")
 
 
 class KafkaConnector(BaseConnector):
@@ -15,9 +17,7 @@ class KafkaConnector(BaseConnector):
         self.conf = config
         self.topic = config.topic
         self.log_flag = log
-        self.producer: Producer = Producer(
-            bootstrap_servers=config.broker_url,
-        )
+        self.producer: Producer = Producer({"bootstrap.servers": config.broker_url})
 
     def send_report(
         self,
