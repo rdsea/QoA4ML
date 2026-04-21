@@ -85,7 +85,7 @@ class TestSystemMonitoringProbeInit:
             _make_probe_config(), _make_connector(), _make_client_info()
         )
         assert "mem" in probe.mem_metadata
-        assert probe.mem_metadata["mem"]["unit"] == "Gb"
+        assert probe.mem_metadata["mem"]["unit"] == "GB"
 
 
 @patch("qoa4ml.probes.system_monitoring_probe.get_sys_gpu_metadata", return_value={})
@@ -163,7 +163,7 @@ class TestSystemMonitoringProbeCreateReportHPC:
             _make_client_info(),
         )
         report = json.loads(probe.create_report())
-        assert report["mem"]["usage"]["unit"] == "Mb"
+        assert report["mem"]["usage"]["unit"] == "MB"
         assert report["mem"]["usage"]["value"] > 0
 
     def test_create_report_metadata_contains_node_name(

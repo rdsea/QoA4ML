@@ -147,21 +147,23 @@ class RoheReport(AbstractReport):
         dict
             Combined stage report containing metrics from both reports.
         """
-        combined_stage_report: dict[str, StageReport] = {}
+        combined_stage_report: dict[str, StageReport] = dict(current_stage_report)
         for stage_name, stage_report in previous_stage_report.items():
-            new_stage_report = StageReport(name=stage_name, metrics={})
-            if stage_name not in current_stage_report:
-                current_stage_report[stage_name] = StageReport(
-                    name=stage_name, metrics={}
-                )
+            existing_metrics = (
+                combined_stage_report[stage_name].metrics
+                if stage_name in combined_stage_report
+                else {}
+            )
+            new_metrics: dict = dict(existing_metrics)
             for metric_name, instance_report_dict in stage_report.metrics.items():
-                if metric_name not in current_stage_report[stage_name].metrics:
-                    current_stage_report[stage_name].metrics[metric_name] = {}
-                new_stage_report.metrics[metric_name] = {
-                    **current_stage_report[stage_name].metrics[metric_name],
+                merged_instances = {
+                    **new_metrics.get(metric_name, {}),
                     **instance_report_dict,
                 }
-            combined_stage_report[stage_name] = new_stage_report
+                new_metrics[metric_name] = merged_instances
+            combined_stage_report[stage_name] = StageReport(
+                name=stage_name, metrics=new_metrics
+            )
         return combined_stage_report
 
     def process_previous_report(self, previous_report_dict: dict) -> None:
@@ -188,6 +190,9 @@ class RoheReport(AbstractReport):
         )
         self.inference_report.data = self.combine_stage_report(
             self.inference_report.data, previous_report.inference_report.data
+        )
+        self.inference_report.security = self.combine_stage_report(
+            self.inference_report.security, previous_report.inference_report.security
         )
 
         if not self.inference_report.ml_specific:
@@ -292,6 +297,12 @@ class RoheReport(AbstractReport):
             if stage not in self.inference_report.data:
                 self.inference_report.data[stage] = StageReport(name=stage, metrics={})
             report_dict = self.inference_report.data[stage].metrics
+        elif report_type == ReportTypeEnum.security:
+            if stage not in self.inference_report.security:
+                self.inference_report.security[stage] = StageReport(
+                    name=stage, metrics={}
+                )
+            report_dict = self.inference_report.security[stage].metrics
         else:
             raise ValueError(f"Can't handle report type {report_type}")
 

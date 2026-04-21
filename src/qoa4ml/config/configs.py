@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..lang.datamodel_enum import (
     EnvironmentEnum,
@@ -10,6 +10,10 @@ from ..lang.datamodel_enum import (
 
 class ClientInfo(BaseModel):
     """Identity and metadata for a QoA client instance."""
+
+    # validate_assignment so set_config(field, bad_value) raises ValidationError
+    # instead of silently storing garbage.
+    model_config = ConfigDict(validate_assignment=True)
 
     id: str = Field(
         default="",
@@ -294,16 +298,23 @@ class ProbeConfig(BaseModel):
     probe_type: str = Field(
         description="Type of probe, e.g. 'process', 'system', 'docker', or 'jetson_sys'"
     )
-    frequency: int = Field(description="Data collection frequency in seconds")
+    frequency: int = Field(
+        description=(
+            "Sampling frequency in Hz (reports per second). "
+            "The probe sleeps 1/frequency seconds between reports."
+        )
+    )
     require_register: bool = Field(
-        description="Whether the probe must register with the observation service before reporting"
+        default=False,
+        description="Whether the probe must register with the observation service before reporting",
     )
     obs_service_url: str | None = Field(
         default=None,
         description="URL of the observation service for probe registration",
     )
     log_latency_flag: bool = Field(
-        description="If True, record and log the latency of each probe report"
+        default=False,
+        description="If True, record and log the latency of each probe report",
     )
     latency_logging_path: str | None = Field(
         default=None,

@@ -148,10 +148,37 @@ class TestPromConnectorOperations:
         connector.dec("cpu_usage", 5)
         connector.metrics["cpu_usage"]["metric"].dec.assert_called_with(5)
 
-    def test_dec_non_gauge_does_nothing(self, prom_info):
+    def test_dec_non_gauge_raises(self, prom_info):
+        # Regression: previously dec() silently no-op'd for non-Gauge keys,
+        # masking caller mistakes. It now raises ValueError, mirroring set().
         connector = self._make_connector(prom_info)
-        connector.dec("request_count", 5)
+        with pytest.raises(ValueError, match="only Gauge supports dec"):
+            connector.dec("request_count", 5)
         connector.metrics["request_count"]["metric"].dec.assert_not_called()
+
+    def test_inc_summary_raises(self, prom_info):
+        connector = self._make_connector(prom_info)
+        with pytest.raises(ValueError, match="does not support inc"):
+            connector.inc("request_latency", 1)
+
+    def test_observe_gauge_raises(self, prom_info):
+        connector = self._make_connector(prom_info)
+        with pytest.raises(ValueError, match="does not support observe"):
+            connector.observe("cpu_usage", 1.0)
+
+    def test_init_unknown_type_raises(self):
+        info = {
+            "port": 8000,
+            "metric": {
+                "bogus": {
+                    "Type": "Mystery",
+                    "Prom_name": "bogus",
+                    "Description": "bogus",
+                }
+            },
+        }
+        with pytest.raises(ValueError, match="unknown metric type"):
+            PromConnector(info)
 
     def test_observe_summary(self, prom_info):
         connector = self._make_connector(prom_info)

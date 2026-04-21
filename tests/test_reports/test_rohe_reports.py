@@ -509,6 +509,10 @@ class TestCombineStageReport:
         assert id2 in result["stage1"].metrics["accuracy"]
 
     def test_combine_with_empty_previous(self, rohe_report):
+        # Regression: previously combine_stage_report() dropped every stage
+        # not present in `previous`, silently destroying the in-progress
+        # report on import_previous_report({}). The merge now preserves
+        # current and only layers previous on top.
         current = {
             "stage1": StageReport(
                 name="stage1",
@@ -522,7 +526,8 @@ class TestCombineStageReport:
             )
         }
         result = rohe_report.combine_stage_report(current, {})
-        assert result == {}
+        assert "stage1" in result
+        assert UUID(INSTANCE_ID) in result["stage1"].metrics["accuracy"]
 
     def test_combine_multiple_stages(self, rohe_report):
         id1 = UUID("a1b2c3d4-e5f6-7890-abcd-ef1234567890")

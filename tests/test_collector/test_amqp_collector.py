@@ -157,6 +157,8 @@ class TestAmqpCollectorOnRequest:
     def test_on_request_without_host_object_logs_message(
         self, amqp_collector_config, mock_pika
     ):
+        # Regression: the decoded payload may contain user/instance metadata,
+        # so it is logged at DEBUG (not INFO).
         from qoa4ml.collector.amqp_collector import AmqpCollector
 
         _mock, _mock_conn, _mock_ch = mock_pika
@@ -170,7 +172,26 @@ class TestAmqpCollectorOnRequest:
 
         with patch("qoa4ml.collector.amqp_collector.qoa_logger") as mock_logger:
             collector.on_request(ch, method, props, body)
-            mock_logger.info.assert_called_once_with({"metric": "cpu", "value": 42})
+            mock_logger.info.assert_not_called()
+            mock_logger.debug.assert_any_call({"metric": "cpu", "value": 42})
+
+    def test_on_request_drops_oversize_frame(self, amqp_collector_config, mock_pika):
+        # Regression: previously the body was loaded with no size cap and a
+        # single hostile producer could OOM the consumer thread.
+        from qoa4ml.collector.amqp_collector import (
+            _MAX_FRAME_BYTES,
+            AmqpCollector,
+        )
+
+        _mock, _mock_conn, _mock_ch = mock_pika
+
+        collector = AmqpCollector(amqp_collector_config)
+        body = b"x" * (_MAX_FRAME_BYTES + 1)
+
+        with patch("qoa4ml.collector.amqp_collector.qoa_logger") as mock_logger:
+            collector.on_request(MagicMock(), MagicMock(), MagicMock(), body)
+            mock_logger.error.assert_called_once()
+            mock_logger.debug.assert_not_called()
 
 
 class TestAmqpCollectorStartCollecting:

@@ -114,8 +114,8 @@ class ProcessMonitoringProbe(Probe):
         """
         data = report_proc_mem(self.process)
         return {
-            "rss": {"value": convert_to_mbyte(data["rss"]), "unit": "Mb"},
-            "vms": {"value": convert_to_mbyte(data["vms"]), "unit": "Mb"},
+            "rss": {"value": convert_to_mbyte(data["rss"]), "unit": "MB"},
+            "vms": {"value": convert_to_mbyte(data["vms"]), "unit": "MB"},
         }
 
     def create_report(self) -> str:

@@ -25,15 +25,21 @@ class KafkaConnector(BaseConnector):
     ):
         self.producer.poll(0)
 
+        encoded = body_message.encode("utf-8")
         self.producer.produce(
             self.topic,
-            body_message.encode("utf-8"),
+            encoded,
             callback=kafka_delivery_error,
         )
         self.producer.flush()
 
         if self.log_flag:
-            qoa_logger.info(f"Sent message to topic {self.topic}: {body_message}")
+            # INFO logs the size only; the payload may carry sensitive
+            # ClientInfo / metric values and should stay at DEBUG.
+            qoa_logger.info(
+                f"Sent message to topic {self.topic} ({len(encoded)} bytes)"
+            )
+            qoa_logger.debug(f"payload to topic {self.topic}: {body_message}")
 
     def get(self):
         return self.conf

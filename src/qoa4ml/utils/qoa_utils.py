@@ -4,7 +4,7 @@ import logging
 import os
 import pathlib
 import re
-import shlex
+import shutil
 import subprocess
 from functools import lru_cache
 from typing import Any
@@ -134,23 +134,26 @@ def get_cgroup_version() -> str:
     versions invoked this at module import, which slowed startup and
     broke imports on systems without `mount`.
     """
+    # Resolve `mount` against $PATH explicitly so we never execute a
+    # PATH-injected binary if the process is launched with a hostile env.
+    mount_bin = shutil.which("mount")
+    if mount_bin is None:
+        qoa_logger.debug("`mount` not found on PATH; defaulting cgroup version to v1")
+        return "v1"
     try:
-        proc1 = subprocess.Popen("mount", stdout=subprocess.PIPE)
-        proc2 = subprocess.Popen(
-            shlex.split("grep cgroup"),
-            stdin=proc1.stdout,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+        proc = subprocess.run(
+            [mount_bin],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
-        if proc1.stdout:
-            proc1.stdout.close()
-        out, _ = proc2.communicate()
-    except (FileNotFoundError, OSError) as error:
+    except (FileNotFoundError, OSError, subprocess.SubprocessError) as error:
         qoa_logger.debug(
             f"Could not detect cgroup version ({type(error).__name__}); defaulting to v1"
         )
         return "v1"
-    return "v2" if "cgroup2" in out.decode() else "v1"
+    return "v2" if "cgroup2" in proc.stdout else "v1"
 
 
 def __getattr__(name: str) -> Any:
@@ -216,7 +219,7 @@ def load_config(file_path: str) -> dict | None:
     Supports JSON and YAML file formats. Logs a warning if the format is unsupported.
     """
     try:
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             if "json" in file_path:
                 return json.load(f)
             elif "yaml" in file_path or "yml" in file_path:
@@ -227,7 +230,6 @@ def load_config(file_path: str) -> dict | None:
     except (OSError, json.JSONDecodeError, yaml.YAMLError) as e:
         qoa_logger.error(f"Unable to load configuration: {e}")
         return None
-    return None
 
 
 def to_json(file_path: str, conf: dict) -> None:
@@ -241,7 +243,7 @@ def to_json(file_path: str, conf: dict) -> None:
     conf : dict
         The configuration dictionary to save.
     """
-    with open(file_path, "w") as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         json.dump(conf, f)
 
 
@@ -256,7 +258,7 @@ def to_yaml(file_path: str, conf: dict) -> None:
     conf : dict
         The configuration dictionary to save.
     """
-    with open(file_path, "w") as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         yaml.dump(conf, f)
 
 
@@ -594,42 +596,45 @@ def get_mem_stat(stats: dict, key: str) -> int:
     return -1
 
 
-def merge_report(f_report: dict, i_report: dict, prio: bool = True) -> dict:
-    """
-    Merge two report dictionaries.
+def merge_report(f_report: Any, i_report: Any, prio: bool = True) -> Any:
+    """Recursively merge two report values without mutating either input.
 
     Parameters
     ----------
-    f_report : dict
-        The first report dictionary.
-    i_report : dict
-        The second report dictionary.
+    f_report :
+        The first report.
+    i_report :
+        The second report.
     prio : bool, optional
-        Flag to determine which report takes priority in case of conflict, default is True.
+        On scalar conflict, prefer ``f_report`` when ``True`` (default),
+        otherwise prefer ``i_report``.
 
     Returns
     -------
-    dict
-        The merged report dictionary.
+    The merged value. When both inputs are dicts, returns a new dict and
+    recurses into shared keys. When both are non-dict values, returns
+    whichever side ``prio`` selects.
 
     Notes
     -----
-    - If both reports are dictionaries, merges them recursively.
-    - If there is a conflict and prio is True, the value from f_report is used; otherwise, the value from i_report is used.
+    Earlier versions mutated both arguments and silently swallowed
+    exceptions; both are now treated as bugs. Callers can rely on input
+    immutability.
     """
-    try:
-        if isinstance(f_report, dict) and isinstance(i_report, dict):
-            key_list = tuple(f_report.keys())
-            for key in key_list:
-                if key in i_report:
-                    f_report[key] = merge_report(f_report[key], i_report[key], prio)
-                    i_report.pop(key)
-            f_report.update(i_report)
-        elif f_report != i_report:
-            return f_report if prio else i_report
-    except Exception:
-        qoa_logger.exception("Error in merge_report")
-    return f_report
+    if isinstance(f_report, dict) and isinstance(i_report, dict):
+        merged: dict = {}
+        for key, f_value in f_report.items():
+            if key in i_report:
+                merged[key] = merge_report(f_value, i_report[key], prio)
+            else:
+                merged[key] = f_value
+        for key, i_value in i_report.items():
+            if key not in merged:
+                merged[key] = i_value
+        return merged
+    if f_report == i_report:
+        return f_report
+    return f_report if prio else i_report
 
 
 def get_dict_at(dictionary: dict, i: int = 0) -> tuple:

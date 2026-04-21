@@ -10,8 +10,15 @@ except ImportError:
 
 
 class MqttConnector(BaseConnector):
-    # This class will handle all the mqtt connection for each client application
-    # FIX: what is host object?
+    """Publish reports through MQTT and dispatch incoming messages to ``host_object``.
+
+    ``host_object.message_processing(client, userdata, msg)`` is invoked
+    whenever the broker delivers a message on the subscribed topic.
+    Callers must call :meth:`start` after construction so paho's network
+    loop is actually running; otherwise publishes will queue locally
+    until the loop drains them.
+    """
+
     def __init__(self, host_object: HostObject, configuration: MQTTConnectorConfig):
         if mqtt is None:
             raise ImportError(

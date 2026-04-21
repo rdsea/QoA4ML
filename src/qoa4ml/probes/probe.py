@@ -21,14 +21,11 @@ class Probe(ABC):
         self.client_info = client_info
         self.frequency = self.config.frequency
         self.monitoring_interval = 1.0 / self.frequency
-        self.execution_flag = False
-        self.report_thread = None
         self.log_latency_flag = self.config.log_latency_flag
         if self.log_latency_flag:
             self.latency_logging_path = config.latency_logging_path
             if self.latency_logging_path is not None:
                 make_folder(self.latency_logging_path)
-        self.max_latency = 0.0
         self.connector = connector
 
     @abstractmethod
@@ -62,7 +59,6 @@ class Probe(ABC):
         """
         background = False for blocking reporting
         """
-        self.execution_flag = True
         current_time = time.time()
         time.sleep(math.ceil(current_time) - current_time)
         self.timer = RepeatedTimer(self.monitoring_interval, self.reporting)
@@ -72,7 +68,6 @@ class Probe(ABC):
     def stop_reporting(self):
         if not hasattr(self, "timer"):
             raise RuntimeError("Can't stop reporting when the timer is not created yet")
-        self.execution_flag = False
         self.timer.stop()
 
     def send_report(self, report):

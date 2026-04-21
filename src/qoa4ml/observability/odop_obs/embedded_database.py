@@ -10,6 +10,9 @@ class EmbeddedDatabase:
     # Window (in seconds) to scan when looking for the latest datapoint.
     # Bounded so `get_latest_timestamp` stays O(window) regardless of DB size.
     DEFAULT_LOOKBACK_SECONDS = 60
+    # Hard cap on the fallback scan (24 h). Past this we give up rather
+    # than degrade to a full-table scan on a long-lived database.
+    MAX_LOOKBACK_SECONDS = 24 * 60 * 60
 
     def __init__(self, db_path: Path) -> None:
         self.db = TinyFlux(db_path, flush_on_insert=False, storage=CSVStorage)
@@ -32,14 +35,24 @@ class EmbeddedDatabase:
         non-UTC hosts. The query now uses UTC-aware datetimes and picks
         the max-timestamp point explicitly.
         """
-        window = lookback_seconds or self.DEFAULT_LOOKBACK_SECONDS
+        initial_window = (
+            self.DEFAULT_LOOKBACK_SECONDS
+            if lookback_seconds is None
+            else lookback_seconds
+        )
         now = datetime.fromtimestamp(time.time(), tz=UTC)
         time_query = TimeQuery()
-        results = self.db.search(
-            (time_query <= now) & (time_query > now - timedelta(seconds=window))
-        )
-        if not results:
-            results = self.db.search(time_query <= now)
-        if not results:
-            return []
-        return [max(results, key=lambda point: point.time)]
+        # Try the requested window first, then back off exponentially up to
+        # MAX_LOOKBACK_SECONDS. We never fall back to an unbounded scan.
+        window = max(initial_window, 1)
+        while True:
+            attempt_window = min(window, self.MAX_LOOKBACK_SECONDS)
+            results = self.db.search(
+                (time_query <= now)
+                & (time_query > now - timedelta(seconds=attempt_window))
+            )
+            if results:
+                return [max(results, key=lambda point: point.time)]
+            if attempt_window >= self.MAX_LOOKBACK_SECONDS:
+                return []
+            window *= 4

@@ -160,7 +160,7 @@ class SystemMonitoringProbe(Probe):
             Dictionary containing memory metadata in gigabytes.
         """
         mem = get_sys_mem()
-        return {"mem": {"capacity": convert_to_gbyte(mem["total"]), "unit": "Gb"}}
+        return {"mem": {"capacity": convert_to_gbyte(mem["total"]), "unit": "GB"}}
 
     def get_mem_usage(self) -> dict:
         """
@@ -172,7 +172,7 @@ class SystemMonitoringProbe(Probe):
             Dictionary containing the memory usage in megabytes.
         """
         mem = get_sys_mem()
-        return {"value": convert_to_mbyte(mem["used"]), "unit": "Mb"}
+        return {"value": convert_to_mbyte(mem["used"]), "unit": "MB"}
 
     def create_report(self) -> str:
         """

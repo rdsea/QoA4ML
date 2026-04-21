@@ -56,7 +56,6 @@ class TestQoaClientInit:
         assert client.stage_id == "gateway"
         assert client.functionality == "REST"
         assert client.timer_flag is False
-        assert client.inference_flag is False
 
     def test_init_creates_debug_connector(self):
         client = _make_client()
@@ -151,8 +150,9 @@ class TestObserveMetric:
 
     def test_observe_metric_category_2_security(self):
         client = _make_client()
-        with pytest.raises(ValueError, match="Can't handle report type"):
-            client.observe_metric("some_metric", 1.0, category=2)
+        client.observe_metric(ServiceQualityEnum.RELIABILITY, 0.99, category=2)
+        report = client.report(reset=False)
+        assert "gateway" in report["security"]
 
     def test_observe_metric_invalid_category_raises(self):
         client = _make_client()

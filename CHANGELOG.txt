@@ -7,6 +7,92 @@ Hardening release focused on dead-code removal, documentation accuracy,
 and closing the last class of silent-failure bugs surfaced in a deep
 review. Includes several behaviour changes — see "Breaking" below.
 
+Post-review fixes (same release):
+- pyproject version bumped from 0.3.18 → 0.3.19 (was missing).
+- README: dead "qoa4ml_lib/qoa4ml/" link replaced with src/qoa4ml/reports/.
+- docs/metrics.md: removed Network I/O row pointing at deleted system_report();
+  eva_* output keys documented as DataQualityEnum string values; ts_inference_*
+  return shapes (empty dict / Error envelope) made explicit.
+- docs/index.md: KafkaConnector extra corrected to qoa4ml[kafka]; supported
+  connector_class list narrowed to the two QoaClient.init_connector handles.
+- system_monitoring_probe / process_monitoring_probe: memory unit labels
+  corrected from "Gb"/"Mb" to "GB"/"MB" (CHANGELOG had only fixed gpu_utils).
+- ProbeConfig: require_register and log_latency_flag now default to False
+  (were unintentionally required, breaking shipped example configs).
+- ProbeConfig.frequency description corrected: it is Hz, not seconds.
+- MLReport / RoheReport: ReportTypeEnum.security is now a real branch with
+  its own MlQualityReport.security stage dict; MLReport.combine_stage_report
+  is pure (no longer mutates current_stage_report).
+- node_aggregator.NodeAggregator.stop(): now stops the underlying
+  SocketCollector before joining (previously hung on join() forever).
+- node_aggregator.convert_unit / _process_hpc_report no longer mutate the
+  caller's dict; HPC reports missing metadata/timestamp are dropped with
+  a log line instead of KeyErroring.
+- mlquality: numpy scalars/arrays coerced to Python types so downstream
+  json.dumps / Pydantic serialization no longer blows up.
+- qoa_client: registration_url POST now has a (5s, 30s) timeout, validates
+  scheme (http/https only), and refuses link-local cloud-metadata addresses
+  (SSRF/blast-radius reduction). asyn_report renamed to
+  _send_report_via_connectors with backward-compat alias kept.
+- PromConnector: unknown metric Type rejected at construction; inc/dec/observe
+  raise ValueError on wrong type instead of silently no-oping; full type hints.
+- amqp_collector / socket_collector: per-frame size cap (1 MiB default) so a
+  hostile producer cannot OOM the consumer thread; payloads logged at DEBUG
+  (not INFO) since they may carry user/instance identifiers.
+- amqp_collector AMQP-vs-AMQPS detection switched from substring match to
+  urlparse(...).scheme.
+- kafka_connector: payload moved from INFO to DEBUG; INFO records size only.
+- embedded_database.get_latest_timestamp: bounded fallback (exponential
+  back-off up to 24h) replaces unbounded full-table scan.
+- qoa_utils.get_cgroup_version: resolves `mount` via shutil.which (CWE-427
+  hardening); subprocess.run with timeout replaces piped Popen.
+- qoa_utils: open() helpers pass encoding="utf-8" explicitly; load_config
+  removed unreachable ``return None``.
+- rohe_ObService: missing/non-JSON POST body now returns HTTP 400 (was 200);
+  Flask debug mode and bind host gated behind ROHE_OBS_DEBUG / ROHE_OBS_HOST
+  env vars (default debug off, default bind 127.0.0.1) — closes RCE risk.
+- Probe: removed dead ``execution_flag``, ``report_thread``, ``max_latency``;
+  removed dead ``inference_flag`` / ``process_monitor_flag`` from QoaClient.
+- Tests: 20 new regressions in tests/test_regressions_0_3_19_post.py.
+
+Additional breaking changes from post-review fixes:
+- PromConnector.inc/dec/observe raise ValueError on type mismatch (were
+  silently no-op'ing). Callers that depended on silent no-ops will break.
+- PromConnector.__init__ raises ValueError on unknown ``Type``.
+- registration_url with file://, ws://, or 169.254.169.254 will now raise.
+- AMQP/socket collector: requests larger than 1 MiB are dropped with an error
+  log instead of being processed.
+
+Second-pass hardening (same release):
+- rohe_ObService: identifier inputs (application_name, user_id, stage_id,
+  instance_name) validated against ``^[A-Za-z0-9_-]{1,64}$`` so attacker
+  input cannot inject AMQP routing-key wildcards (#/*) or Mongo path
+  metacharacters; Mongo db_name now derived from the server-side UUID,
+  not user input.
+- rohe_ObService: optional bearer-token auth via ``ROHE_OBS_TOKEN`` env
+  var (compared with ``hmac.compare_digest``, scheme case-insensitive per
+  RFC 7235); module-level state guarded by ``threading.Lock``; bounded
+  application registry (``_MAX_APPLICATIONS=1000``) returning HTTP 503.
+- rohe_ObService: GET no longer reflects the raw query string, DELETE no
+  longer echoes the request body; both return fixed payloads.
+- rohe_ObService: per-application 1:1 ``application_id → agent`` invariant
+  documented and pinned by a regression test; failed ``agent.start()``
+  rolls back the bookkeeping entry instead of leaving an orphan
+  "starting" record that used to brick the application_id forever.
+- rohe_ObService: ``connector_config`` / ``collector_config`` / ``db_config``
+  are now deep-copied per request; the previous shallow ``.copy()`` let
+  concurrent registrations race on the shared inner ``conf`` dict.
+- rohe_ObService: status updates after ``agent.start()`` re-read through
+  ``agent_list`` rather than writing through a potentially-stale alias.
+- ClientInfo: ``model_config = ConfigDict(validate_assignment=True)`` so
+  ``QoaClient.set_config(field, bad_value)`` raises ``ValidationError``
+  instead of silently storing an unchecked value.
+- merge_report: rewritten to be pure (no longer mutates either argument)
+  and no longer wraps the body in ``except Exception``; type signature
+  widened to ``Any`` for parity with recursive scalar/dict cases.
+- QoaClient.set_config: rejects unknown attribute names (was silent
+  attribute injection on a non-frozen ClientInfo); raises AttributeError.
+
 Fixes:
 - QoaClient: config_dict / config_path precedence is now strict (elif);
   providing neither with no registration_url raises ValueError instead

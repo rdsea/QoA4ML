@@ -77,6 +77,7 @@ class GeneralApplicationReportModel(BaseReport):
 class MlQualityReport(BaseModel):
     service: dict[str, StageReport] = {}
     data: dict[str, StageReport] = {}
+    security: dict[str, StageReport] = {}
 
 
 class GeneralMlInferenceReport(MlQualityReport, BaseReport):

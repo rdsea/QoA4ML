@@ -205,8 +205,8 @@ class TestProcessMonitoringProbeCreateReport:
         mem_usage = report["mem"]["usage"]
         assert "rss" in mem_usage
         assert "vms" in mem_usage
-        assert mem_usage["rss"]["unit"] == "Mb"
-        assert mem_usage["vms"]["unit"] == "Mb"
+        assert mem_usage["rss"]["unit"] == "MB"
+        assert mem_usage["vms"]["unit"] == "MB"
 
     @patch(
         "qoa4ml.probes.process_monitoring_probe.get_process_allowed_memory",

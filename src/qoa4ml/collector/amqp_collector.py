@@ -1,4 +1,5 @@
 import json
+from urllib.parse import urlparse
 
 import pika
 
@@ -6,6 +7,10 @@ from ..config.configs import AMQPCollectorConfig
 from ..utils.logger import qoa_logger
 from .base_collector import BaseCollector
 from .host_object import HostObject
+
+# Drop frames larger than this so a misbehaving producer cannot OOM the
+# consumer thread. 1 MiB is generous for a single QoA report.
+_MAX_FRAME_BYTES = 1 * 1024 * 1024
 
 
 class AmqpCollector(BaseCollector):
@@ -70,7 +75,7 @@ class AmqpCollector(BaseCollector):
         self.exchange_type = configuration.exchange_type
         self.in_routing_key = configuration.in_routing_key
 
-        if "amqps://" in configuration.end_point:
+        if urlparse(configuration.end_point).scheme in {"amqp", "amqps"}:
             parameters = pika.URLParameters(configuration.end_point)
             parameters.heartbeat = 600
             self.in_connection = pika.BlockingConnection(parameters)
@@ -116,6 +121,12 @@ class AmqpCollector(BaseCollector):
         Otherwise, the message is decoded and logged. Malformed payloads
         are logged and dropped instead of crashing the consumer thread.
         """
+        if len(body) > _MAX_FRAME_BYTES:
+            qoa_logger.error(
+                f"AmqpCollector dropping oversize frame ({len(body)} > {_MAX_FRAME_BYTES} bytes)"
+            )
+            return
+
         if self.host_object is not None:
             try:
                 self.host_object.message_processing(ch, method, props, body)
@@ -132,7 +143,9 @@ class AmqpCollector(BaseCollector):
                 f"AmqpCollector dropping malformed frame ({type(error).__name__}): {error}"
             )
             return
-        qoa_logger.info(mess)
+        # The decoded payload may include user/instance identifiers; keep at DEBUG.
+        qoa_logger.debug(f"AmqpCollector received {len(body)} bytes")
+        qoa_logger.debug(mess)
 
     def start_collecting(self) -> None:
         """

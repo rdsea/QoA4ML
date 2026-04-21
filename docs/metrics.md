@@ -10,10 +10,10 @@ These functions are in `qoa4ml.utils.dataquality_utils`.
 
 | Function | Description | Input | Output |
 |---|---|---|---|
-| `eva_erronous(data, errors=None)` | Count entries equal to any value in `errors` (defaults to NaN). | DataFrame or ndarray; optional list of values treated as errors | Dict with `TOTAL_ERRORS` and `ERROR_RATIOS` |
-| `eva_duplicate(data)` | Detect duplicate rows. | DataFrame or ndarray | Dict with `DUPLICATE_RATIO` and `TOTAL_DUPLICATE` |
-| `eva_missing(data, null_count=True, correlations=False, predict=False)` | Count missing values per column and optionally compute their correlation matrix. `predict=True` is reserved for future use and emits a `RuntimeWarning`. | DataFrame or ndarray + bool flags | Dict with `NULL_COUNT`, and `NULL_CORRELATIONS` when `correlations=True` |
-| `eva_none(data)` | Summarize NaN vs valid numeric entries. | DataFrame or ndarray | Dict with `TOTAL_VALID`, `TOTAL_NONE`, `NONE_RATIO` |
+| `eva_erronous(data, errors=None)` | Count entries equal to any value in `errors` (defaults to NaN). | DataFrame or ndarray; optional list of values treated as errors | Dict keyed by `DataQualityEnum` (string values `total_errors`, `error_ratios`) |
+| `eva_duplicate(data)` | Detect duplicate rows. | DataFrame or ndarray | Dict keyed by `DataQualityEnum` (string values `duplicate_ratio`, `total_duplicate`) |
+| `eva_missing(data, null_count=True, correlations=False, predict=False)` | Count missing values per column and optionally compute their correlation matrix. `predict=True` is reserved for future use and emits a `RuntimeWarning`. | DataFrame or ndarray + bool flags | Dict keyed by `DataQualityEnum` (string values `null_count`, plus `null_correlations` when `correlations=True`) |
+| `eva_none(data)` | Summarize NaN vs valid numeric entries. | DataFrame or ndarray | Dict keyed by `DataQualityEnum` (string values `total_valid`, `total_none`, `none_ratio`) |
 
 ### Image Data
 
@@ -30,9 +30,9 @@ These functions are in `qoa4ml.probes.mlquality`. They extract metrics from Tens
 | Function | Description | Input | Output |
 |---|---|---|---|
 | `timeseries_metric(model)` | Get all metrics from a Keras Sequential model | `tf.keras.Sequential` | Dict of metric name to value |
-| `ts_inference_metric(model, name)` | Get a specific metric by name | Model, metric name | Dict with the named metric |
-| `ts_inference_mae(model)` | Get mean absolute error | Model | Dict with MAE value |
-| `ts_inference_loss(model)` | Get loss value | Model | Dict with loss value |
+| `ts_inference_metric(model, name)` | Get a specific metric by name | Model, metric name | `{name: value}` on hit, `{}` when absent, or `{"Error": ...}` on failure |
+| `ts_inference_mae(model)` | Get mean absolute error | Model | `{"mae": value}` (lowercase per 0.3.19) or `{}` |
+| `ts_inference_loss(model)` | Get loss value | Model | `{"loss": value}` or `{}` |
 
 ### Training History Metrics
 
@@ -91,7 +91,6 @@ System and process resource metrics collected by probes:
 | Memory usage | RSS, VMS, and percentage | `ProcessMonitoringProbe` |
 | GPU usage (%) | Core and memory utilization per device | `SystemMonitoringProbe` (NVIDIA) |
 | Docker stats | Container CPU and memory usage | `DockerMonitoringProbe` |
-| Network I/O | Bytes sent / received | `system_report()` utility |
 
 ## Usage Example
 

@@ -71,13 +71,17 @@ class NodeAggregator:
             logger.error(f"unknown HPC report type: {report_type!r}")
             return
 
-        del report_dict["type"]
+        if "metadata" not in report_dict or "timestamp" not in report_dict:
+            logger.error("HPC report missing metadata or timestamp; dropping frame")
+            return
+
+        report_copy = dict(report_dict)
+        report_copy.pop("type", None)
         metadata = flatten(
-            {"metadata": report_dict["metadata"]}, self.config.data_separator
+            {"metadata": report_copy.pop("metadata")}, self.config.data_separator
         )
-        timestamp = report_dict["timestamp"]
-        del report_dict["metadata"], report_dict["timestamp"]
-        fields = self.convert_unit(flatten(report_dict, self.config.data_separator))
+        timestamp = report_copy.pop("timestamp")
+        fields = self.convert_unit(flatten(report_copy, self.config.data_separator))
         self.embedded_database.insert(timestamp, {"type": tag_type, **metadata}, fields)
 
     def _process_edge_report(self, report_dict: dict) -> None:
@@ -131,7 +135,7 @@ class NodeAggregator:
         )
 
     def convert_unit(self, report: dict):
-        converted_report = report
+        converted_report = dict(report)
         for key, value in report.items():
             if isinstance(value, str):
                 if "frequency" in key:
@@ -203,11 +207,13 @@ class NodeAggregator:
         ]
 
     def start(self):
-        self.execution_flag = True
         self.server_thread.start()
         logger.info("node aggregator started")
 
     def stop(self):
-        self.execution_flag = False
+        # Stop the underlying socket collector first; the server thread loop
+        # exits when collector.execution_flag flips, so just joining without
+        # signalling the collector would block forever on accept().
+        self.collector.stop()
         self.server_thread.join()
         logger.info("node aggregator stopped")

@@ -1982,7 +1982,7 @@ wheels = [
 
 [[package]]
 name = "qoa4ml"
-version = "0.3.18"
+version = "0.3.19"
 source = { editable = "." }
 dependencies = [
     { name = "devtools" },

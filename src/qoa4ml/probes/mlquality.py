@@ -46,7 +46,7 @@ def timeseries_metric(model: Any) -> dict[str, Any]:
     try:
         if isinstance(model, tf.keras.Sequential):
             for metric in model.metrics:
-                metrics[metric.name] = metric.result().numpy()
+                metrics[metric.name] = _to_jsonable(metric.result().numpy())
         return metrics
     except (AttributeError, RuntimeError, TypeError) as error:
         qoa_logger.exception(f"timeseries_metric failed ({type(error).__name__})")
@@ -158,14 +158,25 @@ def classification_confidence(data: Any, score: bool = True) -> dict[str, Any]:
     _require_numpy()
     try:
         if score:
-            return {"confidence": 100 * np.max(data)}
+            return {"confidence": float(100 * np.max(data))}
         if is_numpyarray(data):
             _require_tf()
             scores = tf.nn.softmax(data[0])
-            return {"confidence": 100 * np.max(scores)}
+            return {"confidence": float(100 * np.max(scores))}
         return {"Error": f"Unsupported data: {type(data)}"}
     except (ValueError, TypeError, RuntimeError) as error:
         qoa_logger.exception(
             f"classification_confidence failed ({type(error).__name__})"
         )
         return {"Error": "Unable to get classification confidence"}
+
+
+def _to_jsonable(value: Any) -> Any:
+    """Coerce numpy scalars/arrays into JSON-serialisable Python values."""
+    if np is None:
+        return value
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    return value

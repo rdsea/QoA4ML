@@ -1,15 +1,16 @@
 import copy
+import ipaddress
 import os
 import threading
 import time
 import uuid
 from threading import Thread
 from typing import Any, TypeVar
+from urllib.parse import urlparse
 
 import requests
 from pydantic import BaseModel, create_model
 
-# from .connector.mqtt_connector import Mqtt_Connector
 from qoa4ml.config.configs import (
     AMQPConnectorConfig,
     ClientConfig,
@@ -43,13 +44,44 @@ from qoa4ml.utils.qoa_utils import (
     set_logger_level,
 )
 
-headers = {"Content-Type": "application/json"}
+_HEADERS = {"Content-Type": "application/json"}
+_REGISTRATION_TIMEOUT_SECONDS: tuple[float, float] = (5.0, 30.0)
+_ALLOWED_REGISTRATION_SCHEMES = frozenset({"http", "https"})
 
 
 # NOTE: T must be a subtype of AbstractReport
 T = TypeVar("T", bound=AbstractReport)
 
 _DEFAULT_REPORT_CLS: type[Any] = MLReport
+
+
+def _validate_registration_url(url: str) -> None:
+    """Reject registration URLs that would obviously be unsafe or unreachable.
+
+    Validation kept deliberately narrow so existing setups (HTTP to a known
+    registration service) keep working; only flag clearly hostile URLs.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_REGISTRATION_SCHEMES:
+        raise ValueError(
+            f"Unsupported registration URL scheme: {parsed.scheme!r}; "
+            "only http and https are allowed"
+        )
+    if not parsed.hostname:
+        raise ValueError("Registration URL must include a hostname")
+    if _is_link_local_metadata_host(parsed.hostname):
+        raise ValueError(
+            "Registration URL points at a cloud-metadata address; refusing"
+        )
+
+
+def _is_link_local_metadata_host(hostname: str) -> bool:
+    """Return True for the link-local metadata addresses commonly abused by SSRF."""
+    try:
+        ip = ipaddress.ip_address(hostname)
+    except ValueError:
+        return False
+    return ip.is_link_local
 
 
 class QoaClient[T: AbstractReport]:
@@ -99,8 +131,6 @@ class QoaClient[T: AbstractReport]:
         self.timer_flag = False
         self.functionality = self.client_config.functionality
         self.stage_id = self.client_config.stage_id
-        self.process_monitor_flag = 0
-        self.inference_flag = False
 
         self.instance_id: str | None = os.environ.get("INSTANCE_ID")
         if self.instance_id:
@@ -187,8 +217,13 @@ class QoaClient[T: AbstractReport]:
         -----
         This method sends a POST request to the given URL with the client's configuration in JSON format.
         """
+        _validate_registration_url(url)
         return requests.request(
-            "POST", url, headers=headers, data=self.client_config.model_dump_json()
+            "POST",
+            url,
+            headers=_HEADERS,
+            data=self.client_config.model_dump_json(),
+            timeout=_REGISTRATION_TIMEOUT_SECONDS,
         )
 
     def init_probes(
@@ -284,25 +319,27 @@ class QoaClient[T: AbstractReport]:
         return self.client_config
 
     def set_config(self, key: str, value: Any) -> None:
-        """
-        Update a specific configuration setting by key.
+        """Update a single ``ClientInfo`` field in place.
 
         Parameters
         ----------
         key : str
-            The configuration attribute name to be updated.
+            Must be a declared ``ClientInfo`` field name; arbitrary
+            attributes are rejected to prevent silent attribute injection.
         value : Any
-            The value to set for the specified key.
+            The new value to set.
 
         Raises
         ------
-        Exception
-            Logs an error if setting the configuration value fails.
+        AttributeError
+            If ``key`` is not a known ``ClientInfo`` field.
         """
-        try:
-            self.client_config.__setattr__(key, value)
-        except Exception as e:
-            qoa_logger.exception(f"Error {type(e)} when setConfig in QoA client")
+        if key not in ClientInfo.model_fields:
+            raise AttributeError(
+                f"set_config: {key!r} is not a known ClientInfo field; "
+                f"allowed: {sorted(ClientInfo.model_fields)}"
+            )
+        setattr(self.client_config, key, value)
 
     def observe_metric(
         self,
@@ -392,22 +429,23 @@ class QoaClient[T: AbstractReport]:
             else:
                 self.qoa_report.process_previous_report(reports)
 
-    def asyn_report(self, body_mess: str, connectors: list | None = None) -> None:
-        """
-        Asynchronously send a report through the connectors.
+    def _send_report_via_connectors(
+        self, body_mess: str, connectors: list | None = None
+    ) -> None:
+        """Send a serialized report through the configured connectors.
+
+        Despite running on a worker thread, the work is synchronous; the
+        method only takes the lock around connector lookup so concurrent
+        ``observe_metric`` / ``timer`` calls are never blocked by a slow
+        AMQP publish.
 
         Parameters
         ----------
         body_mess : str
             The message body to be sent.
         connectors : list, optional
-            A list of connectors to send the report through. If None, the default connector is used.
-
-        Notes
-        -----
-        Only the connector lookup is serialized on `self.lock`. The actual
-        network I/O runs without the lock so concurrent `observe_metric`
-        and `timer` calls are never blocked by a slow AMQP publish.
+            A list of connectors to send the report through. If None, the
+            default connector is used.
         """
         with self.lock:
             if connectors is not None:
@@ -427,6 +465,9 @@ class QoaClient[T: AbstractReport]:
                 connector.send_report(body_mess, corr_id=str(uuid.uuid4()))
             else:
                 connector.send_report(body_mess)
+
+    # Backward-compat alias (kept until 0.4); prefer the underscored name.
+    asyn_report = _send_report_via_connectors
 
     def report(
         self,
@@ -482,7 +523,7 @@ class QoaClient[T: AbstractReport]:
         if submit:
             if self.default_connector is not None:
                 sub_thread = Thread(
-                    target=self.asyn_report,
+                    target=self._send_report_via_connectors,
                     args=(return_report.model_dump_json(), connectors),
                 )
                 sub_thread.start()

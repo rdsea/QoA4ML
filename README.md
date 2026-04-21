@@ -32,7 +32,7 @@ The QoAClient can be initiated with various configurations for specifying observ
 
 ## QoA4ML Reports
 
-QoA Reports are implemented in [QoA4ML Utilities](qoa4ml_lib/qoa4ml/), an object supports developers in reporting metrics, computation graphs, and inference graphs of ML services in a concrete format.
+QoA Reports are implemented in [QoA4ML Reports](src/qoa4ml/reports/), an object supports developers in reporting metrics, computation graphs, and inference graphs of ML services in a concrete format.
 ![Report schema](img/inf_report.png)
 
 ## Examples

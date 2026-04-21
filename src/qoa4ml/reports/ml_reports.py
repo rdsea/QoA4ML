@@ -98,21 +98,23 @@ class MLReport(AbstractReport):
         dict
             Combined stage report containing metrics from both reports.
         """
-        combined_stage_report: dict[str, StageReport] = {}
+        combined_stage_report: dict[str, StageReport] = dict(current_stage_report)
         for stage_name, stage_report in previous_stage_report.items():
-            new_stage_report = StageReport(name=stage_name, metrics={})
-            if stage_name not in current_stage_report:
-                current_stage_report[stage_name] = StageReport(
-                    name=stage_name, metrics={}
-                )
+            existing_metrics = (
+                combined_stage_report[stage_name].metrics
+                if stage_name in combined_stage_report
+                else {}
+            )
+            new_metrics: dict = dict(existing_metrics)
             for metric_name, instance_report_dict in stage_report.metrics.items():
-                if metric_name not in current_stage_report[stage_name].metrics:
-                    current_stage_report[stage_name].metrics[metric_name] = {}
-                new_stage_report.metrics[metric_name] = {
-                    **current_stage_report[stage_name].metrics[metric_name],
+                merged_instances = {
+                    **new_metrics.get(metric_name, {}),
                     **instance_report_dict,
                 }
-            combined_stage_report[stage_name] = new_stage_report
+                new_metrics[metric_name] = merged_instances
+            combined_stage_report[stage_name] = StageReport(
+                name=stage_name, metrics=new_metrics
+            )
         return combined_stage_report
 
     def process_previous_report(self, previous_report_dict: dict) -> None:
@@ -136,6 +138,9 @@ class MLReport(AbstractReport):
         )
         self.report.data = self.combine_stage_report(
             self.report.data, previous_report.data
+        )
+        self.report.security = self.combine_stage_report(
+            self.report.security, previous_report.security
         )
         self.report.ml_inference |= previous_report.ml_inference
 
@@ -171,6 +176,10 @@ class MLReport(AbstractReport):
             if stage not in self.report.data:
                 self.report.data[stage] = StageReport(name=stage, metrics={})
             report_dict = self.report.data[stage].metrics
+        elif report_type == ReportTypeEnum.security:
+            if stage not in self.report.security:
+                self.report.security[stage] = StageReport(name=stage, metrics={})
+            report_dict = self.report.security[stage].metrics
         else:
             raise ValueError(f"Can't handle report type {report_type}")
 

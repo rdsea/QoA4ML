@@ -1,26 +1,34 @@
 import prometheus_client as pr
 
+_KNOWN_PROM_TYPES = {"Gauge", "Counter", "Summary", "Histogram"}
+
 
 class PromConnector:
-    def __init__(self, info):
+    def __init__(self, info: dict) -> None:
         self.info = info["metric"]
         self.port = info["port"]
-        self.metrics = {}
+        self.metrics: dict = {}
         for key in self.info:
+            metric_type = self.info[key]["Type"]
+            if metric_type not in _KNOWN_PROM_TYPES:
+                raise ValueError(
+                    f"PromConnector: unknown metric type {metric_type!r} for key {key!r}; "
+                    f"expected one of {sorted(_KNOWN_PROM_TYPES)}"
+                )
             self.metrics[key] = {}
-            if self.info[key]["Type"] == "Gauge":
+            if metric_type == "Gauge":
                 self.metrics[key]["metric"] = pr.Gauge(
                     self.info[key]["Prom_name"], self.info[key]["Description"]
                 )
-            if self.info[key]["Type"] == "Counter":
+            elif metric_type == "Counter":
                 self.metrics[key]["metric"] = pr.Counter(
                     self.info[key]["Prom_name"], self.info[key]["Description"]
                 )
-            if self.info[key]["Type"] == "Summary":
+            elif metric_type == "Summary":
                 self.metrics[key]["metric"] = pr.Summary(
                     self.info[key]["Prom_name"], self.info[key]["Description"]
                 )
-            if self.info[key]["Type"] == "Histogram":
+            elif metric_type == "Histogram":
                 self.metrics[key]["metric"] = pr.Histogram(
                     self.info[key]["Prom_name"],
                     self.info[key]["Description"],
@@ -32,13 +40,23 @@ class PromConnector:
             )
         pr.start_http_server(int(info["port"]))
 
-    def inc(self, key, num=1):
-        if self.info[key]["Type"] in ["Gauge", "Counter"]:
+    def inc(self, key: str, num: float = 1) -> None:
+        metric_type = self.info[key]["Type"]
+        if metric_type in ("Gauge", "Counter"):
             self.metrics[key]["metric"].inc(num)
+        else:
+            raise ValueError(
+                f"PromConnector.inc({key!r}): {metric_type} does not support inc()"
+            )
 
-    def dec(self, key, num=1):
-        if self.info[key]["Type"] == "Gauge":
+    def dec(self, key: str, num: float = 1) -> None:
+        metric_type = self.info[key]["Type"]
+        if metric_type == "Gauge":
             self.metrics[key]["metric"].dec(num)
+        else:
+            raise ValueError(
+                f"PromConnector.dec({key!r}): only Gauge supports dec(); got {metric_type}"
+            )
 
     def set(self, key, num=1):
         """Set a Gauge or observe a Histogram/Summary value.
@@ -61,11 +79,16 @@ class PromConnector:
                 f"PromConnector.set({key!r}): unknown type {metric_type!r}"
             )
 
-    def observe(self, key, val):
-        if self.info[key]["Type"] in ["Summary", "Histogram"]:
+    def observe(self, key: str, val: float) -> None:
+        metric_type = self.info[key]["Type"]
+        if metric_type in ("Summary", "Histogram"):
             self.metrics[key]["metric"].observe(val)
+        else:
+            raise ValueError(
+                f"PromConnector.observe({key!r}): {metric_type} does not support observe()"
+            )
 
-    def inc_violation(self, key, num=1):
+    def inc_violation(self, key: str, num: float = 1) -> None:
         self.metrics[key]["violation"].inc(num)
 
     def render_violation_counts(self) -> dict[str, bytes]:

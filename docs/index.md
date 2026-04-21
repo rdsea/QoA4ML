@@ -45,7 +45,7 @@ client = QoaClient(config_dict=client_conf)
 
 Key details:
 
-- `connector` is a **list** of connector entries, not a dict. Each entry has `name`, `connector_class` (from `ServiceAPIEnum`: `AMQP`, `MQTT`, `Kafka`, `REST`, `socket`, `Debug`), and `config` (matched to the connector class).
+- `connector` is a **list** of connector entries, not a dict. Each entry has `name`, `connector_class`, and `config` (matched to the connector class). `QoaClient.init_connector` currently wires only `AMQP` and `Debug`; the other classes (`MqttConnector`, `KafkaConnector`, `SocketConnector`, `PromConnector`) can be instantiated directly but are not selected through `connector_class` yet.
 - `client.functionality` is a free-form string (suggested values from `FunctionalityEnum`: `REST`, `TensorFlow`, `Transformation`, `Max Aggregate`).
 - `client.role` is a free-form string (suggested values from `StakeholderRoleEnum`: `ml_consumer`, `ml_provider`, `ml_infrastructure`).
 - If `connector` is omitted, `registration_url` must be provided at either config level or as a constructor argument.
@@ -191,7 +191,7 @@ Connectors push reports out to an observation service. The contract is `qoa4ml.c
 
 - `AmqpConnector` — publishes to a RabbitMQ exchange; supports reconnect / heartbeat.
 - `MqttConnector` — publishes to an MQTT topic; requires `paho-mqtt` (`qoa4ml[ml]`).
-- `KafkaConnector` — publishes to a Kafka topic; requires `confluent-kafka` (`qoa4ml[ml]`).
+- `KafkaConnector` — publishes to a Kafka topic; requires `confluent-kafka` (`qoa4ml[kafka]`).
 - `SocketConnector` — opens a TCP connection and sends UTF-8 bytes.
 - `PromConnector` — exposes metrics for a Prometheus scrape target.
 - `DebugConnector` — logs the serialized report (for development only).

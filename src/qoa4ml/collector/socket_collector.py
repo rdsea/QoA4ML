@@ -20,6 +20,9 @@ class SocketCollector(BaseCollector):
     # Per-client recv timeout (seconds). Prevents a half-closed sender from
     # hanging the worker thread forever.
     _CLIENT_TIMEOUT = 5.0
+    # Maximum bytes a single client may send before we drop the connection,
+    # so a runaway/malicious peer cannot OOM the collector thread.
+    _MAX_FRAME_BYTES = 1 * 1024 * 1024
 
     def __init__(self, config: SocketCollectorConfig, process_report: Callable) -> None:
         self.config = config
@@ -70,12 +73,22 @@ class SocketCollector(BaseCollector):
     def _handle_client(self, client_socket: socket.socket) -> None:
         client_socket.settimeout(self._CLIENT_TIMEOUT)
         data = b""
+        oversize = False
         try:
             while True:
                 packet = client_socket.recv(self.bufsize)
                 if not packet:
                     break
                 data += packet
+                if len(data) > self._MAX_FRAME_BYTES:
+                    oversize = True
+                    break
+            if oversize:
+                qoa_logger.error(
+                    f"SocketCollector dropping oversize frame "
+                    f"({len(data)} > {self._MAX_FRAME_BYTES} bytes)"
+                )
+                return
             report = data.decode("utf-8")
             self.process_report(report)
         except (OSError, UnicodeDecodeError) as error:
