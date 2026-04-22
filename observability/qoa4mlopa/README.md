@@ -97,10 +97,14 @@ curl --location --request PUT 'localhost:8181/v1/policies/bim-policies-basic-emb
 
 where POLICIES is the content of **language/qoa4mlopa/bim-policies-basic-embedded.rego**
 
-* Run the python code for evaluation: for example, if you put the [bim-policies-basic-embeeded.rego] into the service and play
+* Run the python code for evaluation. `simple_evaluation.py` lives at
+  `observability/simple_evaluation.py` (one level up from this README).
+  You must supply your own runtime-metrics JSON via ``--input``; the
+  snippet below uses a placeholder path — the project no longer ships a
+  sample ``bim-runtimemetrics-ex1.json``.
 ```
-$python3 simple_evaluation.py --purl http://localhost:8181/v1/data/qoa4ml/bim/basic/embedded/mlaccuracy_violation --input bim-runtimemetrics-ex1.json
-b'{"decision_id":"4d4bc408-959e-427b-8031-6f2a0754066d","result":[true]}'
-truong@aaltosea:~/myprojects/mygit/aaltosea/qoa4ml/observability/qoa4mlopa/src$ python3 simple_evaluation.py --purl http://localhost:8181/v1/data/qoa4ml/bim/basic/embedded/mlfair_violation --input bim-runtimemetrics-ex1.json
-b'{"decision_id":"5d99f18a-f02b-42ec-9a86-4dc3d8856344","result":[false]}'
+$ python3 ../simple_evaluation.py \
+    --purl http://localhost:8181/v1/data/qoa4ml/bim/basic/embedded/mlaccuracy_violation \
+    --input <path-to-your-runtime-metrics>.json
+b'{"decision_id":"<uuid>","result":[true]}'
 ```

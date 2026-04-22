@@ -256,15 +256,19 @@ class Rohe_ObService(Resource):  # noqa: N801 - preserved external class name
         return jsonify({"status": "success", "response": response})
 
     def put(self):
-        # Intentional no-op stub; body-driven semantics are not yet defined.
-        return jsonify({"status": True})
+        # PUT semantics are not yet defined. Gate on the same token as POST
+        # for symmetry, and return a clear "not implemented" payload so
+        # callers don't mistake the 405-adjacent response for success.
+        if not _request_token_authorized():
+            return _error("Unauthorized", 401)
+        return _error("PUT not implemented", 501)
 
     def delete(self):
         if not _request_token_authorized():
             return _error("Unauthorized", 401)
-        # Delete semantics are not yet defined; return a fixed payload
+        # DELETE semantics are not yet defined; return a fixed payload
         # rather than reflecting unsanitized user JSON back to the caller.
-        return jsonify({"status": "ok"})
+        return _error("DELETE not implemented", 501)
 
 
 if __name__ == "__main__":
@@ -276,8 +280,12 @@ if __name__ == "__main__":
     config_file = args.conf
     if not config_file:
         config_file = get_parent_dir(__file__, 2) + "/config/rohe_obs_conf.json"
-        qoa_logger.info(f"using default config: {config_file}")
+        qoa_logger.debug(f"using default config: {config_file}")
     configuration = load_config(config_file)
+    if configuration is None:
+        raise SystemExit(
+            f"Rohe_ObService: failed to load configuration from {config_file}"
+        )
 
     api.add_resource(
         Rohe_ObService, "/registration", resource_class_kwargs=configuration
@@ -290,8 +298,7 @@ if __name__ == "__main__":
         )
     if _expected_token() is None:
         qoa_logger.warning(
-            "ROHE_OBS_TOKEN is not set; the registration endpoint is open to "
-            "any client that can reach %s",
-            bind_host,
+            f"ROHE_OBS_TOKEN is not set; the registration endpoint is open to "
+            f"any client that can reach {bind_host}"
         )
     app.run(debug=debug_enabled, host=bind_host, port=5001)

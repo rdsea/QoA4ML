@@ -258,6 +258,12 @@ class ClientConfig(BaseModel):
         probes = values.get("probes", [])
         if probes:
             for i, probe_data in enumerate(probes):
+                # Callers can pass either a raw dict or an already-constructed
+                # ProbeConfig instance. Only dicts need the type lookup.
+                if isinstance(probe_data, ProbeConfig):
+                    continue
+                if not isinstance(probe_data, dict):
+                    continue
                 probe_type = probe_data.get("probe_type")
                 if probe_type in probe_type_map:
                     probes[i] = probe_type_map[probe_type](**probe_data)

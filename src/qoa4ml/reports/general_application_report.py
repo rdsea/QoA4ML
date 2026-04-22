@@ -96,7 +96,10 @@ class GeneralApplicationReport(AbstractReport):
         - It appends the metrics from the previous report to the current report.
         """
         previous_report = GeneralApplicationReportModel(**previous_report_dict)
-        self.previous_reports.append(previous_report.metrics[-1].instance)
+        if previous_report.metrics:
+            # Only the last metric carries an instance tag; skip the append
+            # when there is no metric rather than IndexError on metrics[-1].
+            self.previous_reports.append(previous_report.metrics[-1].instance)
         for metric in previous_report.metrics:
             self.report.metrics.append(metric)
 
@@ -140,9 +143,17 @@ class GeneralApplicationReport(AbstractReport):
         -----
         - This method records inference values as a metric with the name "Inference" and report type ml_specific.
         """
+        # ``records`` is typed ``list[...]``; accept either a series
+        # (list/tuple) or a single scalar/dict and wrap the latter so
+        # Pydantic doesn't ValidationError on non-list input.
+        records = (
+            list(inference_value)
+            if isinstance(inference_value, (list, tuple))
+            else [inference_value]
+        )
         flatten_metric = FlattenMetric(
             metric_name="Inference",
-            records=inference_value,
+            records=records,
             stage=self.client_config.stage_id,
             report_type=ReportTypeEnum.ml_specific,
             instance=self.execution_instance,

@@ -58,7 +58,7 @@ class PromConnector:
                 f"PromConnector.dec({key!r}): only Gauge supports dec(); got {metric_type}"
             )
 
-    def set(self, key, num=1):
+    def set(self, key: str, num: float = 1) -> None:
         """Set a Gauge or observe a Histogram/Summary value.
 
         Raises ``ValueError`` for Counter keys — Counters do not support

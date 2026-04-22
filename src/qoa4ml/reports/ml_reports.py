@@ -98,7 +98,12 @@ class MLReport(AbstractReport):
         dict
             Combined stage report containing metrics from both reports.
         """
-        combined_stage_report: dict[str, StageReport] = dict(current_stage_report)
+        # Deep-copy the current stages so callers that mutate the returned
+        # StageReport instances cannot bleed back into ``self.report``.
+        combined_stage_report: dict[str, StageReport] = {
+            stage_name: stage_report.model_copy(deep=True)
+            for stage_name, stage_report in current_stage_report.items()
+        }
         for stage_name, stage_report in previous_stage_report.items():
             existing_metrics = (
                 combined_stage_report[stage_name].metrics
@@ -186,7 +191,11 @@ class MLReport(AbstractReport):
         if metric.metric_name not in report_dict:
             report_dict[metric.metric_name] = {}
 
-        report_dict[metric.metric_name][UUID(self.client_config.instance_id)] = metric
+        # Deep-copy so the caller mutating their Metric later (e.g. appending
+        # to records) can't leak into the stored report.
+        report_dict[metric.metric_name][UUID(self.client_config.instance_id)] = (
+            metric.model_copy(deep=True)
+        )
 
     def observe_inference(self, inference_value: Any) -> None:
         """

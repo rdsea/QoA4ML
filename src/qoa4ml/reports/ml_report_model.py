@@ -1,7 +1,7 @@
 from typing import TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from qoa4ml.lang.common_models import Metric
 from qoa4ml.lang.datamodel_enum import MetricNameEnum, ReportTypeEnum
@@ -21,11 +21,9 @@ class MicroserviceInstance(BaseModel):
     name: str
     functionality: str = ""
     stage: str | None = None
-    # stage: Optional[StageNameEnum] = None
 
 
 class StageReport(BaseModel):
-    # name: StageNameEnum
     name: str
     metrics: dict[MetricNameEnum, dict[UUID, Metric]]
 
@@ -34,7 +32,7 @@ class InferenceInstance(BaseModel):
     inference_id: UUID
     instance_id: UUID
     functionality: str
-    metrics: list[Metric] = []
+    metrics: list[Metric] = Field(default_factory=list)
     prediction: dict | float | None = None
 
 
@@ -42,7 +40,7 @@ InstanceType = TypeVar("InstanceType")
 
 
 class LinkedInstance[InstanceType](BaseModel):
-    previous: list[InstanceType] = []
+    previous: list[InstanceType] = Field(default_factory=list)
     instance: InstanceType
 
 
@@ -53,14 +51,16 @@ class ExecutionGraph(BaseModel):
 
 class InferenceGraph(BaseModel):
     end_point: InferenceInstance | None = None
-    linked_list: dict[UUID, LinkedInstance[InferenceInstance]] = {}
+    linked_list: dict[UUID, LinkedInstance[InferenceInstance]] = Field(
+        default_factory=dict
+    )
 
 
 # NOTE: use dict so that we know which stage to add metric to
 
 
 class BaseReport(BaseModel):
-    metadata: dict = {}
+    metadata: dict = Field(default_factory=dict)
 
 
 class FlattenMetric(Metric):
@@ -71,17 +71,17 @@ class FlattenMetric(Metric):
 
 
 class GeneralApplicationReportModel(BaseReport):
-    metrics: list[FlattenMetric] = []
+    metrics: list[FlattenMetric] = Field(default_factory=list)
 
 
 class MlQualityReport(BaseModel):
-    service: dict[str, StageReport] = {}
-    data: dict[str, StageReport] = {}
-    security: dict[str, StageReport] = {}
+    service: dict[str, StageReport] = Field(default_factory=dict)
+    data: dict[str, StageReport] = Field(default_factory=dict)
+    security: dict[str, StageReport] = Field(default_factory=dict)
 
 
 class GeneralMlInferenceReport(MlQualityReport, BaseReport):
-    ml_inference: dict[UUID, InferenceInstance] = {}
+    ml_inference: dict[UUID, InferenceInstance] = Field(default_factory=dict)
 
 
 class EnsembleInferenceReport(MlQualityReport):

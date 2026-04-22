@@ -1,6 +1,8 @@
 import logging
+import threading
 import time
 import uuid
+from urllib.parse import urlparse
 
 import pika
 import pika.exceptions
@@ -9,6 +11,10 @@ from ..config.configs import AMQPConnectorConfig
 from .base_connector import BaseConnector
 
 logger = logging.getLogger(__name__)
+
+
+class AmqpPublishError(RuntimeError):
+    """Raised when AMQP publish fails even after a reconnect+retry."""
 
 
 class AmqpConnector(BaseConnector):
@@ -66,6 +72,10 @@ class AmqpConnector(BaseConnector):
         self.out_routing_key = config.out_routing_key
         self.log_flag = log
         self.health_check_disable = self.config.health_check_disable
+        # pika.BlockingConnection is not thread-safe. QoaClient spawns a
+        # Thread per submit, so serialise all publish + reconnect work on
+        # this lock to avoid channel-state corruption.
+        self._publish_lock = threading.Lock()
 
         # Connect to RabbitMQ host
         self.create_connection()
@@ -77,7 +87,10 @@ class AmqpConnector(BaseConnector):
 
     def create_connection(self):
         heartbeat = 0 if self.health_check_disable else 600
-        if "amqps://" in self.config.end_point:
+        # Use urlparse so an ``amqps://`` token embedded anywhere in the
+        # string (e.g. in a userinfo segment) cannot masquerade as the
+        # scheme.
+        if urlparse(self.config.end_point).scheme in {"amqp", "amqps"}:
             parameters = pika.URLParameters(self.config.end_point)
             parameters.heartbeat = heartbeat
         else:
@@ -119,39 +132,54 @@ class AmqpConnector(BaseConnector):
         if routing_key is None:
             routing_key = self.out_routing_key
 
-        self._ensure_connection()
-        self.sub_properties = pika.BasicProperties(
+        # ``sub_properties`` is scoped per-call; storing it on self would
+        # race between concurrent publishers.
+        sub_properties = pika.BasicProperties(
             correlation_id=corr_id, expiration=str(expiration)
         )
-        try:
-            self.out_channel.basic_publish(
-                exchange=self.exchange_name,
-                routing_key=routing_key,
-                properties=self.sub_properties,
-                body=body_message,
-            )
-        except (
-            pika.exceptions.AMQPConnectionError,
-            pika.exceptions.AMQPChannelError,
-        ):
-            logger.warning("AMQP publish failed, reconnecting and retrying")
-            time.sleep(0.5)
-            self.create_connection()
-            self.out_channel.exchange_declare(
-                exchange=self.exchange_name, exchange_type=self.exchange_type
-            )
+        # Serialise all channel I/O — pika.BlockingConnection is not
+        # thread-safe and concurrent basic_publish / reconnect will
+        # corrupt channel state.
+        with self._publish_lock:
+            self._ensure_connection()
             try:
                 self.out_channel.basic_publish(
                     exchange=self.exchange_name,
                     routing_key=routing_key,
-                    properties=self.sub_properties,
+                    properties=sub_properties,
                     body=body_message,
                 )
+                return
             except (
                 pika.exceptions.AMQPConnectionError,
                 pika.exceptions.AMQPChannelError,
             ):
-                logger.error("AMQP publish failed after retry, dropping message")
+                logger.warning("AMQP publish failed, reconnecting and retrying")
+                time.sleep(0.5)
+                self.create_connection()
+                self.out_channel.exchange_declare(
+                    exchange=self.exchange_name, exchange_type=self.exchange_type
+                )
+                try:
+                    self.out_channel.basic_publish(
+                        exchange=self.exchange_name,
+                        routing_key=routing_key,
+                        properties=sub_properties,
+                        body=body_message,
+                    )
+                    return
+                except (
+                    pika.exceptions.AMQPConnectionError,
+                    pika.exceptions.AMQPChannelError,
+                ) as error:
+                    logger.error(
+                        f"AMQP publish failed after retry ({type(error).__name__})"
+                    )
+                    # Raise so callers that care can detect delivery failure
+                    # instead of the previous silent-drop behaviour.
+                    raise AmqpPublishError(
+                        "AMQP publish failed after reconnect+retry"
+                    ) from error
 
     def get(self) -> AMQPConnectorConfig:
         """

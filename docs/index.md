@@ -47,7 +47,7 @@ Key details:
 
 - `connector` is a **list** of connector entries, not a dict. Each entry has `name`, `connector_class`, and `config` (matched to the connector class). `QoaClient.init_connector` currently wires only `AMQP` and `Debug`; the other classes (`MqttConnector`, `KafkaConnector`, `SocketConnector`, `PromConnector`) can be instantiated directly but are not selected through `connector_class` yet.
 - `client.functionality` is a free-form string (suggested values from `FunctionalityEnum`: `REST`, `TensorFlow`, `Transformation`, `Max Aggregate`).
-- `client.role` is a free-form string (suggested values from `StakeholderRoleEnum`: `ml_consumer`, `ml_provider`, `ml_infrastructure`).
+- `client.role` is a free-form string. `StakeholderRoleEnum` offers suggested values (`ml_consumer`, `ml_provider`, `ml_infrastructure`), but the `ClientInfo.role` Field description and shipped examples also use ad-hoc values (e.g. `ml`, `producer`, `consumer`) — the runtime treats it as opaque metadata.
 - If `connector` is omitted, `registration_url` must be provided at either config level or as a constructor argument.
 
 More examples live in `example/simple/config/` and `example/reports/config/`.
@@ -92,7 +92,7 @@ Probes are lightweight modules that capture metrics and push them through a conn
 - `DockerMonitoringProbe` — container stats via the Docker SDK.
 - `mlquality` (function module, not a probe class) — TensorFlow/Keras metric extractors; requires `pip install qoa4ml[ml]`.
 
-Each concrete probe overrides `create_report()` and inherits `start_reporting(background=True)` / `stop_reporting()`. A `RepeatedTimer` drives the report cadence based on the configured `frequency` (reports per second).
+Each concrete probe overrides `create_report()` and inherits `start_reporting(background=True)` / `stop_reporting()`. A `RepeatedTimer` drives the report cadence based on the configured `frequency` (positive integer, reports per second; sub-Hz cadences are not currently supported).
 
 ## Metric model
 
@@ -106,7 +106,7 @@ class Metric(BaseModel):
     description: str | None = None
 ```
 
-There is **no** `Counter`/`Gauge`/`Summary`/`Histogram` class in QoA4ML. `MetricClassEnum` exists as a StrEnum (`gauge`, `counter`, `summary`, `histogram`) for Prometheus-compatible configuration, but the project's own reporting path uses the single `Metric` model above. Treat `MetricClassEnum` as a tag, not as an inheritance hierarchy.
+There is **no** `Counter`/`Gauge`/`Summary`/`Histogram` class in QoA4ML. `MetricClassEnum` exists as a StrEnum whose member names are lowercase (`gauge`, `counter`, `summary`, `histogram`) but whose string *values* are PascalCase (`"Gauge"`, `"Counter"`, `"Summary"`, `"Histogram"`) for Prometheus-compatible configuration. The project's own reporting path uses the single `Metric` model above — treat `MetricClassEnum` as a tag, not as an inheritance hierarchy.
 
 For constraint / contract definitions, see `qoa4ml.lang.common_models.Condition`, `MetricConstraint`, and `BaseConstraint`.
 
@@ -145,6 +145,7 @@ Reports are produced by an `AbstractReport` subclass held inside `QoaClient.qoa_
       "metrics": { "accuracy": { "<instance_uuid>": { "metric_name": "accuracy", "records": [0.97], "unit": null, "description": "" } } }
     }
   },
+  "security": {},
   "ml_inference": {
     "<instance_uuid>": {
       "inference_id": "<uuid>",
@@ -193,10 +194,10 @@ Connectors push reports out to an observation service. The contract is `qoa4ml.c
 - `MqttConnector` — publishes to an MQTT topic; requires `paho-mqtt` (`qoa4ml[ml]`).
 - `KafkaConnector` — publishes to a Kafka topic; requires `confluent-kafka` (`qoa4ml[kafka]`).
 - `SocketConnector` — opens a TCP connection and sends UTF-8 bytes.
-- `PromConnector` — exposes metrics for a Prometheus scrape target.
+- `PromConnector` — a Prometheus metric **registry**, not a report publisher. It does **not** inherit from `BaseConnector` and has no `send_report`; callers use `inc/dec/set/observe/inc_violation/render_violation_counts`.
 - `DebugConnector` — logs the serialized report (for development only).
 
-All connectors implement `send_report`. `MqttConnector` additionally exposes `send_data`, and its `send_report` delegates to `send_data` internally (legacy naming kept to avoid breaking existing instrumentations).
+All connectors *except* `PromConnector` implement `send_report`. `MqttConnector` additionally exposes `send_data` (its `send_report` delegates to `send_data` internally), and MQTT publishes only start flowing once `MqttConnector.start()` is invoked — paho's network loop must be running before a publish is dispatched.
 
 ## Utilities
 

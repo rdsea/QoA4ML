@@ -53,7 +53,7 @@ Post-review fixes (same release):
   env vars (default debug off, default bind 127.0.0.1) — closes RCE risk.
 - Probe: removed dead ``execution_flag``, ``report_thread``, ``max_latency``;
   removed dead ``inference_flag`` / ``process_monitor_flag`` from QoaClient.
-- Tests: 20 new regressions in tests/test_regressions_0_3_19_post.py.
+- Tests: 30+ new regressions in tests/test_regressions_0_3_19_post.py.
 
 Additional breaking changes from post-review fixes:
 - PromConnector.inc/dec/observe raise ValueError on type mismatch (were
@@ -167,6 +167,80 @@ Breaking changes:
   incrementing; PromConnector.update_violation_count() replaced by
   render_violation_counts().
 - Rohe_Agent.stop() now performs a full shutdown (channel + connection).
+
+Third-pass post-review fixes (same release):
+High:
+- kafka_collector.start_collecting now subscribes to the configured topic
+  and dispatches each message to on_request (previously polled without
+  subscribing → silently dropped all traffic). Consumer is closed on stop.
+- mqtt_connector.on_connect now matches paho VERSION2 signature
+  (client, userdata, flags, reason_code, properties); previous v1 arity
+  raised TypeError on every connect, losing all subscriptions silently.
+- general_application_report.observe_inference wraps non-list values so
+  Pydantic doesn't ValidationError; process_previous_report guards the
+  empty-metrics case against IndexError on metrics[-1].
+- DataQualityEnum.NONE_RATIO now computes the actual none/NaN fraction
+  (was returning the VALID fraction); dashboards relying on the label
+  were plotting the inverse.
+- get_process_allowed_memory: divides by number_of_tasks only when > 0
+  (the task_* glob rarely matches on real cgroup layouts, and the old
+  code raised ZeroDivisionError each probe tick).
+- AmqpConnector: publishes serialized on a threading.Lock so concurrent
+  QoaClient submits can't corrupt the pika BlockingConnection; retry
+  failure now raises AmqpPublishError instead of silent drop.
+- ClientConfig.validate_probe_type tolerates probe entries that arrive
+  as already-instantiated ProbeConfig instances (previous .get() call
+  raised AttributeError).
+
+Medium:
+- Probe.start_reporting stops any existing timer before creating a new
+  one — no more leaked daemon thread on double-start; latency log path
+  uses os.path.join instead of naive string concatenation.
+- Rohe_Agent: Mongo insert wrapped in try/except PyMongoError; double
+  start() guarded; mongo_client.close() in stop(); no more connection
+  pool leak across restart cycles.
+- rohe_ObService: startup raises SystemExit when config fails to load
+  (previously crashed on first request); PUT/DELETE stubs return HTTP
+  501 with a consistent auth gate instead of fake-success payloads.
+- node_aggregator.convert_unit: unknown unit strings pass through
+  unchanged rather than raising KeyError; metadata-prefixed keys are
+  never unit-converted.
+- MLReport / RoheReport: combine_stage_report deep-copies current
+  stages so caller mutations to the returned report don't bleed back
+  into self.report; observe_metric stores a deep copy of the caller's
+  Metric so caller-side records.append() cannot mutate stored state.
+- QoaClient gains a ``strict: bool = False`` kwarg; when True, connector
+  init failures (or zero connectors) raise instead of silent degraded
+  mode. Default False preserves legacy behaviour.
+- init_probes: clearer error message for JetsonSystemProbeConfig /
+  JetsonProcessesProbeConfig since those types are accepted by the
+  config parser but not wired in init_probes yet.
+- _is_link_local_metadata_host also blocks the common DNS names for
+  cloud metadata services (metadata.google.internal, instance-data,
+  etc.). Still narrow by design — does not block loopback/RFC1918.
+- dataquality_utils: pandas and Pillow imports are now lazy via
+  _require_pandas() / _require_pil(); module imports cleanly on core
+  installs without the qoa4ml[ml] extra.
+
+Low / docs:
+- ml_report_model: mutable field defaults switched to
+  ``Field(default_factory=...)``.
+- gpu_utils: broader except (NVMLError, OSError, ImportError) so a
+  missing NVML shared-library doesn't kill module import on non-GPU
+  hosts.
+- logger: handler attached only when no handlers exist (avoids
+  duplicate lines under reload / double-import).
+- amqp_connector: sub_properties moved from instance to local scope
+  (was racy); AMQPS detection uses urlparse scheme instead of substring.
+- docs/index.md: MLReport JSON example now shows the ``security: {}``
+  key; PromConnector clarified as a metric registry (not a
+  BaseConnector); MetricClassEnum value casing corrected; client.role
+  note reconciled with ClientInfo Field; frequency doc notes integer
+  Hz only.
+- docs/metrics.md: classification_confidence row added.
+- observability/qoa4mlopa/README.md: removed reference to a
+  ``bim-runtimemetrics-ex1.json`` that does not ship with the repo.
+- CHANGELOG regression-count line corrected.
 
 0.3.18 (25/03/2026)
 ---------------------

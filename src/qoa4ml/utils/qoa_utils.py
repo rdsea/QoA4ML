@@ -755,43 +755,50 @@ def get_process_allowed_memory() -> float | None:
     -----
     - Supports both cgroup v1 and v2 formats to get the memory limit.
     """
+    # The ``task_*`` glob rarely matches anything on real cgroup layouts,
+    # so ``number_of_tasks`` is frequently 0 — return the raw limit rather
+    # than dividing by zero and killing the caller.
     if get_cgroup_version() == "v1":
-        with open("/proc/self/cgroup") as file:
+        with open("/proc/self/cgroup", encoding="utf-8") as file:
             for line in file:
                 parts = line.strip().split(":")
                 if len(parts) == 3 and parts[1] == "memory":
                     cgroup_path = parts[2]
                     memory_limit_file = re.sub(r"/task_\d+", "", cgroup_path)
-
                     number_of_tasks = len(
                         glob.glob(f"/sys/fs/cgroup/memory{memory_limit_file}/task_*")
                     )
-
                     with open(
-                        f"/sys/fs/cgroup/memory{memory_limit_file}/memory.limit_in_bytes"
+                        f"/sys/fs/cgroup/memory{memory_limit_file}/memory.limit_in_bytes",
+                        encoding="utf-8",
                     ) as limit_file:
                         memory_limit_str = limit_file.read().strip()
                         try:
                             memory_limit_int = int(memory_limit_str)
-                            return memory_limit_int / number_of_tasks
                         except ValueError:
                             return None
+                        if number_of_tasks <= 0:
+                            return float(memory_limit_int)
+                        return memory_limit_int / number_of_tasks
             return None
     else:
-        with open("/proc/self/cgroup") as file:
+        with open("/proc/self/cgroup", encoding="utf-8") as file:
             for line in file:
                 parts = line.strip().split(":")
                 cgroup_path = parts[2]
-                pattern = r"/task_\d+"
-                cgroup_path = re.sub(pattern, "", cgroup_path)
-                with open(f"/sys/fs/cgroup{cgroup_path}/memory.max") as limit_file:
+                cgroup_path = re.sub(r"/task_\d+", "", cgroup_path)
+                with open(
+                    f"/sys/fs/cgroup{cgroup_path}/memory.max", encoding="utf-8"
+                ) as limit_file:
                     number_of_tasks = len(
                         glob.glob(f"/sys/fs/cgroup{cgroup_path}/task_*")
                     )
                     memory_limit_str = limit_file.read().strip()
                     try:
                         memory_limit_int = int(memory_limit_str)
-                        return memory_limit_int / number_of_tasks
                     except ValueError:
                         return None
+                    if number_of_tasks <= 0:
+                        return float(memory_limit_int)
+                    return memory_limit_int / number_of_tasks
             return None

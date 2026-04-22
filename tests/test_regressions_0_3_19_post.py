@@ -635,3 +635,515 @@ def test_rohe_obs_service_rolls_back_on_agent_start_failure(_rohe_client):
 
     application_id = rohe.application_list["flaky_app"]["id"]
     assert application_id not in rohe.agent_list
+
+
+# ============================================================
+# Second-round post-review fixes (High + Medium + Low)
+# ============================================================
+
+
+# --- High: kafka_collector subscribes + dispatches + caps ---
+
+
+def test_kafka_collector_subscribes_and_dispatches(monkeypatch):
+    """Regression: previous loop polled without subscribing and dropped all traffic."""
+    fake_confluent = MagicMock()
+    monkeypatch.setitem(__import__("sys").modules, "confluent_kafka", fake_confluent)
+    import importlib
+
+    import qoa4ml.collector.kafka_collector as kc
+
+    importlib.reload(kc)
+
+    from qoa4ml.config.configs import KafkaCollectorConfig
+
+    collector = kc.KafkaCollector(
+        KafkaCollectorConfig(
+            topic="t1",
+            broker_url="localhost:9092",
+            group_id="g1",
+        )
+    )
+
+    # Drive one poll returning a valid message, then stop the loop.
+    sample = MagicMock()
+    sample.error.return_value = None
+    sample.value.return_value = b'{"x": 1}'
+
+    def poll(_timeout):
+        collector.running = False  # exit after first iteration
+        return sample
+
+    collector.consumer.poll = poll
+    collector.consumer.subscribe = MagicMock()
+    collector.consumer.close = MagicMock()
+
+    with patch.object(kc, "qoa_logger") as logger:
+        collector.start_collecting()
+        collector.consumer.subscribe.assert_called_once_with(["t1"])
+        collector.consumer.close.assert_called_once()
+        # Payload logged at DEBUG only.
+        assert not any('{"x": 1}' in str(call) for call in logger.info.call_args_list)
+    importlib.reload(kc)
+
+
+def test_kafka_collector_drops_oversize_frame(monkeypatch):
+    fake_confluent = MagicMock()
+    monkeypatch.setitem(__import__("sys").modules, "confluent_kafka", fake_confluent)
+    import importlib
+
+    import qoa4ml.collector.kafka_collector as kc
+
+    importlib.reload(kc)
+
+    from qoa4ml.config.configs import KafkaCollectorConfig
+
+    collector = kc.KafkaCollector(
+        KafkaCollectorConfig(topic="t", broker_url="x", group_id="g")
+    )
+    body = b"x" * (kc._MAX_FRAME_BYTES + 1)
+    with patch.object(kc, "qoa_logger") as logger:
+        collector.on_request(None, None, None, body)
+        logger.error.assert_called_once()
+    importlib.reload(kc)
+
+
+# --- High: general_application_report guard + observe_inference wrap ---
+
+
+def _general_report_harness():
+    from qoa4ml.reports.general_application_report import GeneralApplicationReport
+
+    info = ClientInfo(
+        name="t",
+        username="u",
+        user_id="1",
+        instance_id="b6f83293-cf67-44dd-a7b5-77229d384012",
+        instance_name="i",
+        stage_id="inference",
+        functionality="REST",
+        application_name="app",
+        role="ml",
+    )
+    return GeneralApplicationReport(info)
+
+
+def test_general_report_process_previous_empty_metrics_no_crash():
+    """Regression: metrics[-1] on empty list raised IndexError."""
+    report = _general_report_harness()
+    report.process_previous_report(
+        {"metadata": {}, "metrics": []}
+    )  # no metrics key — must not raise
+
+
+def test_general_report_observe_inference_scalar_is_wrapped():
+    """Regression: observe_inference with a non-list value ValidationError'd."""
+    report = _general_report_harness()
+    report.observe_inference(0.42)
+    fm = report.report.metrics[-1]
+    assert fm.records == [0.42]
+
+
+# --- High: NONE_RATIO inverted formula ---
+
+
+def test_eva_none_ratio_is_actually_the_none_fraction():
+    """Regression: NONE_RATIO used to return the VALID fraction."""
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("pandas", reason="dataquality_utils needs pandas")
+    from qoa4ml.lang.attributes import DataQualityEnum
+    from qoa4ml.utils.dataquality_utils import eva_none
+
+    arr = np.array([1.0, 2.0, np.nan, np.nan])
+    out = eva_none(arr)
+    assert out is not None
+    # 2/4 are NaN → 50%.
+    assert out[DataQualityEnum.NONE_RATIO] == pytest.approx(50.0)
+
+
+def test_eva_none_ratio_empty_dataset_is_zero():
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("pandas", reason="dataquality_utils needs pandas")
+    from qoa4ml.lang.attributes import DataQualityEnum
+    from qoa4ml.utils.dataquality_utils import eva_none
+
+    out = eva_none(np.array([], dtype=float))
+    assert out is not None
+    assert out[DataQualityEnum.NONE_RATIO] == 0.0
+
+
+# --- High: get_process_allowed_memory divide-by-zero ---
+
+
+def test_get_process_allowed_memory_no_tasks_returns_raw_limit(monkeypatch, tmp_path):
+    """Regression: dividing by zero killed the probe each tick."""
+    import qoa4ml.utils.qoa_utils as qu
+
+    # Force v2 path into a fake cgroup tree we control.
+    qu.get_cgroup_version.cache_clear()
+    monkeypatch.setattr(qu, "get_cgroup_version", lambda: "v2")
+    fake_proc = tmp_path / "proc_cgroup"
+    fake_proc.write_text("0::/unit.slice\n", encoding="utf-8")
+    fake_sys = tmp_path / "sys" / "fs" / "cgroup" / "unit.slice"
+    fake_sys.mkdir(parents=True)
+    (fake_sys / "memory.max").write_text("12345", encoding="utf-8")
+
+    real_open = open
+
+    def fake_open(path, *args, **kwargs):
+        path_str = str(path)
+        if path_str == "/proc/self/cgroup":
+            return real_open(fake_proc, *args, **kwargs)
+        if path_str == "/sys/fs/cgroup/unit.slice/memory.max":
+            return real_open(fake_sys / "memory.max", *args, **kwargs)
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+    monkeypatch.setattr(qu.glob, "glob", lambda _: [])  # zero tasks
+    # Must return the raw limit rather than raising ZeroDivisionError.
+    assert qu.get_process_allowed_memory() == 12345.0
+
+
+# --- High: AmqpConnector publish is thread-safe / raises on final failure ---
+
+
+def test_amqp_connector_raises_on_final_publish_failure():
+    """Regression: silent drop was misleading for user-initiated publishes."""
+    import qoa4ml.connector.amqp_connector as ac
+
+    # Build a connector skeleton without touching pika.
+    connector = ac.AmqpConnector.__new__(ac.AmqpConnector)
+    connector.config = MagicMock()
+    connector.exchange_name = "ex"
+    connector.exchange_type = "topic"
+    connector.out_routing_key = "rk"
+    connector.log_flag = False
+    connector.health_check_disable = True
+    import threading as _threading
+
+    connector._publish_lock = _threading.Lock()
+
+    # Fake pika channel that fails then fails again on retry.
+    import pika.exceptions as pe
+
+    fake_channel = MagicMock()
+    fake_channel.basic_publish.side_effect = pe.AMQPConnectionError()
+    fake_channel.exchange_declare = MagicMock()
+    connector.out_channel = fake_channel
+    connector.out_connection = MagicMock()
+    connector.out_connection.is_closed = False
+
+    # Skip the reconnect's real work.
+    connector.create_connection = MagicMock()
+
+    with pytest.raises(ac.AmqpPublishError):
+        connector.send_report("payload")
+
+
+# --- High: validate_probe_type tolerates ProbeConfig instances ---
+
+
+def test_validate_probe_type_accepts_probe_instances():
+    """Regression: .get() on a ProbeConfig instance raised AttributeError."""
+    from qoa4ml.config.configs import ClientConfig, ProcessProbeConfig
+
+    probe = ProcessProbeConfig(probe_type="process", frequency=1, pid=None)
+    # Mixed inputs: a raw dict and a ProbeConfig instance. No crash.
+    cfg = ClientConfig.model_validate(
+        {
+            "client": {"name": "c"},
+            "probes": [
+                {"probe_type": "system", "frequency": 1},
+                probe,
+            ],
+        }
+    )
+    assert cfg.probes is not None
+    assert len(cfg.probes) == 2
+
+
+# --- Medium: Probe double-start stops the old timer ---
+
+
+def test_probe_double_start_stops_prior_timer():
+    """Regression: start_reporting() twice leaked the prior daemon thread."""
+    from qoa4ml.config.configs import SystemProbeConfig
+    from qoa4ml.probes.system_monitoring_probe import SystemMonitoringProbe
+
+    with (
+        patch("qoa4ml.probes.system_monitoring_probe.get_sys_cpu_metadata") as cpu,
+        patch("qoa4ml.probes.system_monitoring_probe.get_sys_mem") as mem,
+        patch("qoa4ml.probes.system_monitoring_probe.find_igpu", return_value={}),
+        patch(
+            "qoa4ml.probes.system_monitoring_probe.get_sys_gpu_metadata",
+            return_value={},
+        ),
+    ):
+        cpu.return_value = {"cores": 1}
+        mem.return_value = {"total": 1, "used": 1}
+        probe = SystemMonitoringProbe(
+            SystemProbeConfig(probe_type="system", frequency=1, node_name="n"),
+            MagicMock(),
+        )
+        with patch("qoa4ml.probes.probe.RepeatedTimer") as timer_cls:
+            first = MagicMock()
+            second = MagicMock()
+            timer_cls.side_effect = [first, second]
+            probe.start_reporting()
+            probe.start_reporting()  # must stop `first` before overwriting
+            first.stop.assert_called_once()
+        probe.stop_reporting()
+
+
+# --- Medium: MLReport.combine_stage_report deep-copies current stages ---
+
+
+def test_combine_stage_report_deep_copies_current():
+    from uuid import UUID
+
+    from qoa4ml.lang.common_models import Metric
+    from qoa4ml.reports.ml_report_model import StageReport
+
+    report = MLReport(
+        ClientInfo(
+            name="t",
+            username="u",
+            user_id="1",
+            instance_id="b6f83293-cf67-44dd-a7b5-77229d384012",
+            instance_name="i",
+            stage_id="s",
+            functionality="REST",
+            application_name="app",
+            role="ml",
+        )
+    )
+    instance = UUID("b6f83293-cf67-44dd-a7b5-77229d384012")
+    metric = Metric(metric_name=ServiceQualityEnum.RESPONSE_TIME, records=[0.1])
+    current: dict[str, StageReport] = {
+        "s1": StageReport(
+            name="s1",
+            metrics={ServiceQualityEnum.RESPONSE_TIME: {instance: metric}},
+        )
+    }
+    combined = report.combine_stage_report(current, {})
+    # Mutating the returned stage must not touch ``current``.
+    combined["s1"].metrics[ServiceQualityEnum.RESPONSE_TIME][instance].records.append(
+        99
+    )
+    assert current["s1"].metrics[ServiceQualityEnum.RESPONSE_TIME][
+        instance
+    ].records == [0.1]
+
+
+# --- Medium: observe_metric stores a deep copy of the caller's metric ---
+
+
+def test_observe_metric_deep_copies_caller_metric():
+    """Regression: caller mutations to the Metric leaked into stored report."""
+    from qoa4ml.lang.common_models import Metric
+    from qoa4ml.lang.datamodel_enum import ReportTypeEnum
+
+    report = MLReport(
+        ClientInfo(
+            name="t",
+            username="u",
+            user_id="1",
+            instance_id="b6f83293-cf67-44dd-a7b5-77229d384012",
+            instance_name="i",
+            stage_id="s",
+            functionality="REST",
+            application_name="app",
+            role="ml",
+        )
+    )
+    m = Metric(metric_name=ServiceQualityEnum.RESPONSE_TIME, records=[0.1])
+    report.observe_metric(ReportTypeEnum.service, "s1", m)
+    # Mutate the caller's metric after observing; stored metric must be intact.
+    m.records.append(99)
+    stored = next(iter(report.report.service["s1"].metrics.values()))
+    stored_metric = next(iter(stored.values()))
+    assert stored_metric.records == [0.1]
+
+
+# --- Medium: ClientInfo.set_config rejects unknown AND invalid values ---
+
+
+def test_qoa_client_strict_mode_raises_when_no_connector_initiated():
+    """Regression: silent degraded mode was project fail-fast violation."""
+    from qoa4ml.qoa_client import QoaClient
+
+    with pytest.raises(RuntimeError, match="no connectors"):
+        QoaClient(
+            config_dict={
+                "client": {"name": "c"},
+                # deliberately no connector, no registration_url
+            },
+            strict=True,
+        )
+
+
+# --- Medium: convert_unit tolerates unknown unit strings ---
+
+
+def test_node_aggregator_convert_unit_tolerates_unknown_unit(tmp_path):
+    from qoa4ml.config.configs import NodeAggregatorConfig, SocketCollectorConfig
+    from qoa4ml.observability.odop_obs.node_aggregator import NodeAggregator
+
+    cfg = NodeAggregatorConfig(
+        socket_collector_config=SocketCollectorConfig(
+            host="127.0.0.1", port=0, backlog=1, bufsize=256
+        ),
+        environment=EnvironmentEnum.edge,
+        unit_conversion={
+            "frequency": {"Hz": "Hz"},
+            "mem": {"MB": "MB"},
+            "cpu": {"usage": {"percentage": "%"}},
+            "gpu": {"usage": {"percentage": "%"}},
+        },
+        query_method="GET",
+        data_separator=".",
+    )
+    aggr = NodeAggregator(cfg, tmp_path)
+    # Unknown unit passes through — no KeyError.
+    out = aggr.convert_unit({"cpu.usage.unit": "UNKNOWN", "metadata.mem": "GB"})
+    assert out["cpu.usage.unit"] == "UNKNOWN"
+    # Metadata keys are skipped entirely.
+    assert out["metadata.mem"] == "GB"
+
+
+# --- Medium: dataquality_utils still imports without pandas/PIL extras ---
+
+
+def test_dataquality_utils_imports_without_pandas():
+    """Regression: unconditional pandas/PIL imports broke core installs.
+
+    Manages sys.modules manually via try/finally so the teardown ordering
+    guarantees we reload with the real pandas/PIL restored before any
+    subsequent test runs.
+    """
+    import importlib
+    import sys
+
+    import qoa4ml.utils.dataquality_utils as dq
+
+    saved_pd = sys.modules.get("pandas", ...)
+    saved_pil = sys.modules.get("PIL", ...)
+    try:
+        sys.modules["pandas"] = None  # type: ignore[assignment]
+        sys.modules["PIL"] = None  # type: ignore[assignment]
+        importlib.reload(dq)
+        # Module import must succeed even when extras are absent.
+        assert dq.pd is None
+        assert dq.Image is None
+    finally:
+        if saved_pd is ...:
+            sys.modules.pop("pandas", None)
+        else:
+            sys.modules["pandas"] = saved_pd  # type: ignore[assignment]
+        if saved_pil is ...:
+            sys.modules.pop("PIL", None)
+        else:
+            sys.modules["PIL"] = saved_pil  # type: ignore[assignment]
+        importlib.reload(dq)  # restore real pd/Image for subsequent tests
+
+
+# --- Medium: mqtt_connector v2 on_connect signature accepts the right args ---
+
+
+def test_mqtt_on_connect_accepts_v2_signature(monkeypatch):
+    """Regression: paho VERSION2 callback sig mismatch silently lost subscriptions."""
+    import qoa4ml.connector.mqtt_connector as mc
+
+    # Force the module-level ``mqtt`` alias to a MagicMock so the connector
+    # can be constructed regardless of whether paho-mqtt is installed.
+    fake_mqtt = MagicMock()
+    fake_mqtt.Client.return_value = MagicMock()
+    monkeypatch.setattr(mc, "mqtt", fake_mqtt)
+
+    config = MagicMock()
+    config.out_queue = "pub"
+    config.in_queue = "sub"
+    config.client_id = "c"
+    config.broker_url = "localhost"
+    config.broker_port = 1883
+    config.broker_keepalive = 60
+
+    host = MagicMock()
+    connector = mc.MqttConnector(host, config)
+    fake_client = MagicMock()
+    # Drive the callback with the v2 arity (5 args).
+    connector.on_connect(fake_client, None, {}, 0, None)
+    fake_client.subscribe.assert_called_once_with("sub")
+
+
+# --- Low: CHANGELOG test-count claim is plausible ---
+
+
+def test_regression_file_has_many_tests():
+    import re
+
+    this_file = Path(__file__).read_text(encoding="utf-8")
+    count = len(re.findall(r"^def test_", this_file, flags=re.MULTILINE))
+    assert count >= 30, f"regression count regressed — only {count} tests found"
+
+
+def test_kafka_collector_tolerates_none_body(monkeypatch):
+    """Regression: len(None) raised TypeError in the consumer thread."""
+    fake_confluent = MagicMock()
+    monkeypatch.setitem(__import__("sys").modules, "confluent_kafka", fake_confluent)
+    import importlib
+
+    import qoa4ml.collector.kafka_collector as kc
+
+    importlib.reload(kc)
+
+    from qoa4ml.config.configs import KafkaCollectorConfig
+
+    collector = kc.KafkaCollector(
+        KafkaCollectorConfig(topic="t", broker_url="x", group_id="g")
+    )
+    # Must return cleanly without raising — tombstone / keyed-null records.
+    collector.on_request(None, None, None, None)
+    importlib.reload(kc)
+
+
+def test_general_report_observe_inference_accepts_tuple():
+    """Regression: narrowing to list-only dropped tuples silently."""
+    report = _general_report_harness()
+    report.observe_inference((0.1, 0.2, 0.3))
+    fm = report.report.metrics[-1]
+    assert fm.records == [0.1, 0.2, 0.3]
+
+
+def test_rohe_agent_stop_restart_cycle_keeps_mongo_alive():
+    """Regression: stop() used to close MongoClient, breaking restart()."""
+    pytest.importorskip("pymongo", reason="rohe_Agent needs pymongo")
+    pytest.importorskip("rohe_Agent", reason="rohe sibling package not on sys.path")
+
+    from importlib import import_module
+    from unittest.mock import patch as mpatch
+
+    rohe_agent_module = import_module("rohe_Agent")
+
+    fake_collector = MagicMock()
+    fake_mongo = MagicMock()
+
+    with mpatch.object(rohe_agent_module, "AmqpCollector", return_value=fake_collector):
+        with mpatch("pymongo.MongoClient", return_value=fake_mongo):
+            agent = rohe_agent_module.Rohe_Agent(
+                {
+                    "collector": {"amqp_collector": {"conf": MagicMock()}},
+                    "database": {
+                        "url": "mongodb://localhost",
+                        "db_name": "db",
+                        "metric_collection": "c",
+                    },
+                }
+            )
+
+    # stop() is a pause — mongo_client.close() MUST NOT be called.
+    agent.stop()
+    fake_mongo.close.assert_not_called()
+    # shutdown() is the terminal teardown.
+    agent.shutdown()
+    fake_mongo.close.assert_called_once()

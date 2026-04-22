@@ -33,6 +33,7 @@ These functions are in `qoa4ml.probes.mlquality`. They extract metrics from Tens
 | `ts_inference_metric(model, name)` | Get a specific metric by name | Model, metric name | `{name: value}` on hit, `{}` when absent, or `{"Error": ...}` on failure |
 | `ts_inference_mae(model)` | Get mean absolute error | Model | `{"mae": value}` (lowercase per 0.3.19) or `{}` |
 | `ts_inference_loss(model)` | Get loss value | Model | `{"loss": value}` or `{}` |
+| `classification_confidence(data, score=True)` | Top-1 confidence as percent | ndarray; `score=True` when already softmax scores, `False` to softmax logits first | `{"confidence": <float 0-100>}` or `{"Error": ...}` |
 
 ### Training History Metrics
 

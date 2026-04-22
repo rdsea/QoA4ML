@@ -50,10 +50,14 @@ class MqttConnector(BaseConnector):
             configuration.broker_keepalive,
         )
 
-    def on_connect(self, client, userdata, flags, rc):
-        qoa_logger.debug("Connected with result code " + str(rc))
-        # Subscribing in on_connect() means that if we lose the connection and
-        # reconnect then subscriptions will be renewed.
+    def on_connect(self, client, userdata, flags, reason_code, properties=None):
+        # paho >= 2.x CallbackAPIVersion.VERSION2 passes (reason_code,
+        # properties) instead of the v1 single rc int. Matching this
+        # signature is required or paho raises TypeError on every connect
+        # and the subscription below never runs.
+        qoa_logger.debug(f"Connected with reason_code {reason_code}")
+        # Subscribing in on_connect() means that if we lose the connection
+        # and reconnect then subscriptions will be renewed.
         client.subscribe(self.sub_queue)
 
     def on_message(self, client, userdata, msg):

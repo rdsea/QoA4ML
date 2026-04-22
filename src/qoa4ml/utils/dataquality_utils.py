@@ -1,15 +1,44 @@
+from __future__ import annotations
+
 import io
 import warnings
 from typing import Any
 
 import numpy as np
-import pandas as pd
 from fastapi import UploadFile
-from PIL import Image
 
 from qoa4ml.lang.attributes import DataQualityEnum
 from qoa4ml.lang.datamodel_enum import ImageQualityNameEnum
 from qoa4ml.utils.logger import qoa_logger
+
+# pandas and Pillow live in the ``qoa4ml[ml]`` extra, not core. Import them
+# lazily so ``import qoa4ml.utils.dataquality_utils`` still succeeds on a
+# core install; each helper raises a clear ImportError when actually used.
+try:
+    import pandas as pd
+except ImportError:
+    pd = None  # type: ignore[assignment]
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None  # type: ignore[assignment]
+
+
+_ML_EXTRA_HINT = (
+    "qoa4ml.utils.dataquality_utils requires pandas and Pillow; "
+    "install the optional extra with `pip install qoa4ml[ml]`"
+)
+
+
+def _require_pandas() -> None:
+    if pd is None:
+        raise ImportError(_ML_EXTRA_HINT)
+
+
+def _require_pil() -> None:
+    if Image is None:
+        raise ImportError(_ML_EXTRA_HINT)
 
 
 def eva_input_file_type(input_file: UploadFile, allowed_data_type: list[str]):
@@ -54,8 +83,10 @@ def image_quality(input_image: bytes | np.ndarray) -> dict[ImageQualityNameEnum,
     TypeError
         If ``input_image`` is neither ``bytes`` nor ``numpy.ndarray``.
     """
+    _require_pil()
+    image: Any
     if isinstance(input_image, bytes):
-        image: Image.Image = Image.open(io.BytesIO(input_image))
+        image = Image.open(io.BytesIO(input_image))
     elif isinstance(input_image, np.ndarray):
         image = Image.fromarray(input_image)
     else:
@@ -88,6 +119,7 @@ def eva_erronous(data: np.ndarray | pd.DataFrame, errors: list | None = None):
           - DataQualityEnum.error_ratios: Percentage of errors.
         Returns None if the input data type is unsupported or if an exception occurs.
     """
+    _require_pandas()
     try:
         if isinstance(data, np.ndarray):
             data = pd.DataFrame(data)
@@ -131,6 +163,7 @@ def eva_duplicate(data: np.ndarray | pd.DataFrame):
           - DataQualityEnum.total_duplicate: Total number of duplicate entries.
         Returns None if the input data type is unsupported or if an exception occurs.
     """
+    _require_pandas()
     try:
         if isinstance(data, np.ndarray):
             data = pd.DataFrame(data)
@@ -179,6 +212,7 @@ def eva_missing(
           - DataQualityEnum.null_correlations: Correlation matrix of missing values (if correlations is True).
         Returns None if the input data type is unsupported or if an exception occurs.
     """
+    _require_pandas()
     try:
         if isinstance(data, np.ndarray):
             data = pd.DataFrame(data)
@@ -223,9 +257,13 @@ def eva_none(data: np.ndarray | pd.DataFrame):
         A dictionary containing the following keys if successful:
           - DataQualityEnum.total_valid: Total count of valid (non-NaN) entries.
           - DataQualityEnum.total_none: Total count of None (NaN) entries.
-          - DataQualityEnum.none_ratio: Percentage of valid entries.
+          - DataQualityEnum.none_ratio: Percentage of none/NaN entries
+            (``100 * none_count / total``; ``0.0`` when the dataset is
+            empty). Field name is authoritative — previous versions
+            accidentally computed the *valid* ratio.
         Returns None if the input data type is unsupported or if an exception occurs.
     """
+    _require_pandas()
     try:
         if isinstance(data, pd.DataFrame):
             data_numeric = data.select_dtypes(include=[np.number])
@@ -233,11 +271,12 @@ def eva_none(data: np.ndarray | pd.DataFrame):
         if isinstance(data, np.ndarray):
             valid_count = np.count_nonzero(~np.isnan(data))
             none_count = np.count_nonzero(np.isnan(data))
+            total = valid_count + none_count
             results: dict[DataQualityEnum, float] = {}
             results[DataQualityEnum.TOTAL_VALID] = float(valid_count)
             results[DataQualityEnum.TOTAL_NONE] = float(none_count)
             results[DataQualityEnum.NONE_RATIO] = (
-                100 * valid_count / (valid_count + none_count)
+                100.0 * none_count / total if total > 0 else 0.0
             )
             return results
         else:

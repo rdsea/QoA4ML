@@ -75,8 +75,27 @@ def _validate_registration_url(url: str) -> None:
         )
 
 
+_KNOWN_METADATA_HOSTNAMES = frozenset(
+    {
+        "metadata",
+        "metadata.google.internal",
+        "metadata.goog",
+        "instance-data",
+        "instance-data.ec2.internal",
+    }
+)
+
+
 def _is_link_local_metadata_host(hostname: str) -> bool:
-    """Return True for the link-local metadata addresses commonly abused by SSRF."""
+    """Return True for link-local IP literals *or* known cloud-metadata DNS names.
+
+    Still narrow on purpose: we do NOT block 127.0.0.1 / RFC1918 because
+    operators legitimately point ``registration_url`` at local dev
+    registration services. Callers who need a stricter policy should
+    run the request behind an egress allow-list.
+    """
+    if hostname.lower() in _KNOWN_METADATA_HOSTNAMES:
+        return True
     try:
         ip = ipaddress.ip_address(hostname)
     except ValueError:
@@ -91,6 +110,7 @@ class QoaClient[T: AbstractReport]:
         config_dict: dict | None = None,
         config_path: str | None = None,
         registration_url: str | None = None,
+        strict: bool = False,
     ):
         """
         Initialize the QoA Client with configuration settings and a report class.
@@ -105,6 +125,11 @@ class QoaClient[T: AbstractReport]:
             Path to a JSON configuration file.
         registration_url : str, optional
             URL for registering the client and receiving configuration data.
+        strict : bool, optional
+            When True, re-raise any exception encountered while wiring up
+            connectors (honouring the project fail-fast rule). Default
+            False preserves the legacy "construct successfully with no
+            connector" behaviour.
 
         Notes
         -----
@@ -154,6 +179,8 @@ class QoaClient[T: AbstractReport]:
                 qoa_logger.exception(
                     f"Error {type(e)} when configuring connector in QoaClient"
                 )
+                if strict:
+                    raise
         elif registration_url or self.configuration.registration_url:
             try:
                 if registration_url:
@@ -185,9 +212,15 @@ class QoaClient[T: AbstractReport]:
                     )
             except Exception as e:
                 qoa_logger.exception(f"Error {type(e)} when registering QoA client")
+                if strict:
+                    raise
 
         if not self.connector_list:
             qoa_logger.warning("No connector initiated")
+            if strict:
+                raise RuntimeError(
+                    "QoaClient constructed with no connectors (strict=True)"
+                )
             self.default_connector = None
         else:
             self.default_connector = next(iter(self.connector_list.keys()))
@@ -257,6 +290,9 @@ class QoaClient[T: AbstractReport]:
             selected_connector = DebugConnector(DebugConnectorConfig(silence=False))
 
         for probe_config in probe_config_list:
+            # Dispatch in most-specific-first order; DockerProbeConfig must
+            # come before SystemProbeConfig / ProcessProbeConfig if those
+            # are its parents.
             if isinstance(probe_config, DockerProbeConfig):
                 probes_list.append(
                     DockerMonitoringProbe(probe_config, selected_connector, client_info)
@@ -272,8 +308,15 @@ class QoaClient[T: AbstractReport]:
                     SystemMonitoringProbe(probe_config, selected_connector, client_info)
                 )
             else:
+                # JetsonSystemProbeConfig / JetsonProcessesProbeConfig are
+                # accepted by the config parser (see configs.validate_probe_type)
+                # but no probe class is wired here yet. Surface a clear
+                # message instead of a generic ValueError.
                 raise ValueError(
-                    f"Probe config type {type(probe_config)} is not supported yet"
+                    f"Probe config type {type(probe_config).__name__} is accepted "
+                    "by ClientConfig but QoaClient.init_probes has no probe "
+                    "class for it. Start Jetson probes manually, or drop the "
+                    "entry from the config."
                 )
         return probes_list
 

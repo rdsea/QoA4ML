@@ -135,23 +135,41 @@ class NodeAggregator:
         )
 
     def convert_unit(self, report: dict):
+        """Translate unit strings via ``self.unit_conversion``, tolerating misses.
+
+        Keys that begin with ``metadata`` are skipped so metadata fields
+        never get unit-converted even if they happen to contain substrings
+        like ``mem``/``cpu``/``gpu``. Unit strings not present in the map
+        pass through unchanged rather than raising ``KeyError`` — a
+        producer that emits a new unit can't poison the whole frame.
+        """
         converted_report = dict(report)
         for key, value in report.items():
-            if isinstance(value, str):
-                if "frequency" in key:
-                    converted_report[key] = self.unit_conversion["frequency"][value]
-                elif "mem" in key:
-                    converted_report[key] = self.unit_conversion["mem"][value]
-                elif "cpu" in key:
-                    if "usage" in key:
-                        converted_report[key] = self.unit_conversion["cpu"]["usage"][
-                            value
-                        ]
-                elif "gpu" in key:
-                    if "usage" in key:
-                        converted_report[key] = self.unit_conversion["gpu"]["usage"][
-                            value
-                        ]
+            if not isinstance(value, str):
+                continue
+            # Metadata is user-supplied free-form data; never re-map it.
+            if key.startswith("metadata"):
+                continue
+            if "frequency" in key:
+                converted_report[key] = self.unit_conversion.get("frequency", {}).get(
+                    value, value
+                )
+            elif "mem" in key:
+                converted_report[key] = self.unit_conversion.get("mem", {}).get(
+                    value, value
+                )
+            elif "cpu" in key and "usage" in key:
+                converted_report[key] = (
+                    self.unit_conversion.get("cpu", {})
+                    .get("usage", {})
+                    .get(value, value)
+                )
+            elif "gpu" in key and "usage" in key:
+                converted_report[key] = (
+                    self.unit_conversion.get("gpu", {})
+                    .get("usage", {})
+                    .get(value, value)
+                )
         return converted_report
 
     def revert_unit(self, converted_report: dict):

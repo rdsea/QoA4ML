@@ -1,4 +1,5 @@
 import math
+import os
 import time
 from abc import ABC, abstractmethod
 from typing import Any
@@ -27,6 +28,7 @@ class Probe(ABC):
             if self.latency_logging_path is not None:
                 make_folder(self.latency_logging_path)
         self.connector = connector
+        self.timer: RepeatedTimer | None = None
 
     @abstractmethod
     def create_report(self) -> Any:
@@ -59,6 +61,10 @@ class Probe(ABC):
         """
         background = False for blocking reporting
         """
+        # Stop any pre-existing timer so a double-start doesn't leak the
+        # old daemon thread (which would keep publishing at the old rate).
+        if self.timer is not None:
+            self.timer.stop()
         current_time = time.time()
         time.sleep(math.ceil(current_time) - current_time)
         self.timer = RepeatedTimer(self.monitoring_interval, self.reporting)
@@ -66,7 +72,7 @@ class Probe(ABC):
             self.timer.thread.join()
 
     def stop_reporting(self):
-        if not hasattr(self, "timer"):
+        if self.timer is None:
             raise RuntimeError("Can't stop reporting when the timer is not created yet")
         self.timer.stop()
 
@@ -76,7 +82,7 @@ class Probe(ABC):
         if self.log_latency_flag and self.latency_logging_path:
             self.write_log(
                 (time.time() - start) * 1000,
-                self.latency_logging_path + "report_latency.txt",
+                os.path.join(self.latency_logging_path, "report_latency.txt"),
             )
 
     def write_log(self, latency, filepath: str):

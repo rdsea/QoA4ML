@@ -12,7 +12,10 @@ from .pynvml_forked import (
 HAS_NVIDIA_GPU = True
 try:
     nvmlInit()
-except NVMLError:
+except (NVMLError, OSError, ImportError):
+    # Broader than just NVMLError: a missing libnvidia-ml.so raises OSError
+    # and any import-time issue surfaces as ImportError. Either way the
+    # host has no usable NVIDIA GPU and we fall back cleanly.
     HAS_NVIDIA_GPU = False
 
 
