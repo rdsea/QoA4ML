@@ -1,29 +1,30 @@
 ---
-#client configuration
+# Template QoA4ML client configuration. The schema is ``ClientConfig``
+# in ``src/qoa4ml/config/configs.py``: ``collector`` and ``connector`` are
+# lists of wrappers, each with ``name``, ``<kind>_class`` and ``config``.
+
 client:
-  user_id: aaltosea1
+  username: aaltosea1
   instance_name: data_handling01
-  stage_id: Gateway
+  stage_id: gateway
   functionality: REST
   application_name: test
   role: ml
 
-# collector configuration
 collector:
-  amqp_collector:
-    class: amqp
-    conf:
+  - name: amqp_collector
+    collector_class: AMQP
+    config:
       end_point: localhost
       exchange_name: exchange_name
       exchange_type: topic
       in_routing_key: qoa1.report.#
       in_queue: collector_1
 
-# connector configuration
 connector:
-  amqp_connector:
-    class: amqp
-    conf:
+  - name: amqp_connector
+    connector_class: AMQP
+    config:
       end_point: localhost
       exchange_name: qoa4ml
       exchange_type: topic

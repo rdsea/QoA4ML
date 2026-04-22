@@ -8,12 +8,17 @@ These functions are in `qoa4ml.utils.dataquality_utils`.
 
 ### Tabular Data
 
+All `eva_*` functions return a dict whose keys are `DataQualityEnum`
+members (a `StrEnum` — they compare equal to their listed string value
+but `type(key) is str` is `False`, so downstream JSON / schema code
+should coerce with `str(key)` when a plain string is required).
+
 | Function | Description | Input | Output |
 |---|---|---|---|
-| `eva_erronous(data, errors=None)` | Count entries equal to any value in `errors` (defaults to NaN). | DataFrame or ndarray; optional list of values treated as errors | Dict keyed by `DataQualityEnum` (string values `total_errors`, `error_ratios`) |
-| `eva_duplicate(data)` | Detect duplicate rows. | DataFrame or ndarray | Dict keyed by `DataQualityEnum` (string values `duplicate_ratio`, `total_duplicate`) |
-| `eva_missing(data, null_count=True, correlations=False, predict=False)` | Count missing values per column and optionally compute their correlation matrix. `predict=True` is reserved for future use and emits a `RuntimeWarning`. | DataFrame or ndarray + bool flags | Dict keyed by `DataQualityEnum` (string values `null_count`, plus `null_correlations` when `correlations=True`) |
-| `eva_none(data)` | Summarize NaN vs valid numeric entries. | DataFrame or ndarray | Dict keyed by `DataQualityEnum` (string values `total_valid`, `total_none`, `none_ratio`) |
+| `eva_erronous(data, errors=None)` | Count entries equal to any value in `errors` (defaults to NaN). | DataFrame or ndarray; optional list of values treated as errors | Dict keyed by `DataQualityEnum` members whose string values are `total_errors`, `error_ratios` |
+| `eva_duplicate(data)` | Detect duplicate rows. | DataFrame or ndarray | Dict keyed by `DataQualityEnum` members whose string values are `duplicate_ratio`, `total_duplicate` |
+| `eva_missing(data, null_count=True, correlations=False, predict=False)` | Count missing values per column and optionally compute their correlation matrix. `predict=True` is reserved for future use and emits a `RuntimeWarning`. | DataFrame or ndarray + bool flags | Dict keyed by `DataQualityEnum` members whose string values are `null_count`, plus `null_correlations` when `correlations=True` |
+| `eva_none(data)` | Summarize NaN vs valid numeric entries. | DataFrame or ndarray | Dict keyed by `DataQualityEnum` members whose string values are `total_valid`, `total_none`, `none_ratio` |
 
 ### Image Data
 
@@ -62,7 +67,7 @@ Quality attributes are defined as enums in `qoa4ml.lang.attributes`. The tables 
 | `NULL_CORRELATIONS` | `null_correlations` | Correlation matrix of null values |
 | `TOTAL_VALID` | `total_valid` | Count of valid (non-NaN) numeric entries |
 | `TOTAL_NONE` | `total_none` | Count of None / NaN numeric entries |
-| `NONE_RATIO` | `none_ratio` | Ratio of valid entries (%) |
+| `NONE_RATIO` | `none_ratio` | Ratio of none / NaN entries (%) |
 
 ### ML Model Quality Attributes (`MLModelQualityEnum`)
 
@@ -89,7 +94,7 @@ System and process resource metrics collected by probes:
 | Metric | Description | Source |
 |---|---|---|
 | CPU usage (%) | Per-core and aggregate CPU utilization | `SystemMonitoringProbe` |
-| Memory usage | RSS, VMS, and percentage | `ProcessMonitoringProbe` |
+| Memory usage | RSS and VMS (MB) | `ProcessMonitoringProbe` |
 | GPU usage (%) | Core and memory utilization per device | `SystemMonitoringProbe` (NVIDIA) |
 | Docker stats | Container CPU and memory usage | `DockerMonitoringProbe` |
 

@@ -1,224 +1,221 @@
 {
-  "$defs": {
-    "DataQualityEnum": {
-      "enum": [
-        "accuracy",
-        "completeness",
-        "total_errors",
-        "error_ratios",
-        "duplicate_ratio",
-        "total_duplicate",
-        "null_count",
-        "null_correlations",
-        "total_valid",
-        "total_none",
-        "none_ratio"
-      ],
-      "title": "DataQualityEnum",
-      "type": "string"
-    },
-    "FlattenMetric": {
-      "properties": {
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Description"
+    "$defs": {
+        "DataQualityEnum": {
+            "enum": [
+                "data_accuracy",
+                "completeness",
+                "total_errors",
+                "error_ratios",
+                "duplicate_ratio",
+                "total_duplicate",
+                "null_count",
+                "null_correlations",
+                "total_valid",
+                "total_none",
+                "none_ratio"
+            ],
+            "title": "DataQualityEnum",
+            "type": "string"
         },
-        "instance": {
-          "$ref": "#/$defs/MicroserviceInstance"
-        },
-        "metric_name": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ServiceQualityEnum"
+        "FlattenMetric": {
+            "properties": {
+                "metric_name": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ServiceQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/MLModelQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/DataQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/ResourcesUtilizationMetricNameEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/ImageQualityNameEnum"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "title": "Metric Name"
+                },
+                "records": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "items": {},
+                                "type": "array"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "title": "Records",
+                    "type": "array"
+                },
+                "unit": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Unit"
+                },
+                "description": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Description"
+                },
+                "stage": {
+                    "title": "Stage",
+                    "type": "string"
+                },
+                "report_type": {
+                    "$ref": "#/$defs/ReportTypeEnum"
+                },
+                "instance": {
+                    "$ref": "#/$defs/MicroserviceInstance"
+                },
+                "previous_instances": {
+                    "items": {
+                        "$ref": "#/$defs/MicroserviceInstance"
+                    },
+                    "title": "Previous Instances",
+                    "type": "array"
+                }
             },
-            {
-              "$ref": "#/$defs/MLModelQualityEnum"
-            },
-            {
-              "$ref": "#/$defs/DataQualityEnum"
-            },
-            {
-              "$ref": "#/$defs/ResourcesUtilizationMetricNameEnum"
-            },
-            {
-              "$ref": "#/$defs/ImageQualityNameEnum"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "title": "Metric Name"
+            "required": [
+                "metric_name",
+                "stage",
+                "report_type",
+                "instance",
+                "previous_instances"
+            ],
+            "title": "FlattenMetric",
+            "type": "object"
         },
-        "previous_instances": {
-          "items": {
-            "$ref": "#/$defs/MicroserviceInstance"
-          },
-          "title": "Previous Instances",
-          "type": "array"
+        "ImageQualityNameEnum": {
+            "enum": [
+                "image_size",
+                "object_size",
+                "color_mode",
+                "color_channel"
+            ],
+            "title": "ImageQualityNameEnum",
+            "type": "string"
         },
-        "records": {
-          "default": [],
-          "items": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "title": "Records",
-          "type": "array"
+        "MLModelQualityEnum": {
+            "enum": [
+                "auc",
+                "model_accuracy",
+                "mse",
+                "precision",
+                "recall"
+            ],
+            "title": "MLModelQualityEnum",
+            "type": "string"
         },
-        "report_type": {
-          "$ref": "#/$defs/ReportTypeEnum"
-        },
-        "stage": {
-          "title": "Stage",
-          "type": "string"
-        },
-        "unit": {
-          "anyOf": [
-            {
-              "type": "string"
+        "MicroserviceInstance": {
+            "properties": {
+                "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                },
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "functionality": {
+                    "default": "",
+                    "title": "Functionality",
+                    "type": "string"
+                },
+                "stage": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Stage"
+                }
             },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Unit"
+            "required": [
+                "id",
+                "name"
+            ],
+            "title": "MicroserviceInstance",
+            "type": "object"
+        },
+        "ReportTypeEnum": {
+            "enum": [
+                "data_report",
+                "service_report",
+                "ml_specific_report",
+                "security_report"
+            ],
+            "title": "ReportTypeEnum",
+            "type": "string"
+        },
+        "ResourcesUtilizationMetricNameEnum": {
+            "enum": [
+                "cpu_usage",
+                "memory_usage"
+            ],
+            "title": "ResourcesUtilizationMetricNameEnum",
+            "type": "string"
+        },
+        "ServiceQualityEnum": {
+            "enum": [
+                "availability",
+                "reliability",
+                "response_time"
+            ],
+            "title": "ServiceQualityEnum",
+            "type": "string"
         }
-      },
-      "required": [
-        "metric_name",
-        "stage",
-        "report_type",
-        "instance",
-        "previous_instances"
-      ],
-      "title": "FlattenMetric",
-      "type": "object"
     },
-    "ImageQualityNameEnum": {
-      "enum": [
-        "image_size",
-        "object_size",
-        "color_mode",
-        "color_channel"
-      ],
-      "title": "ImageQualityNameEnum",
-      "type": "string"
-    },
-    "MLModelQualityEnum": {
-      "enum": [
-        "auc",
-        "accuracy",
-        "mse",
-        "precision",
-        "recall"
-      ],
-      "title": "MLModelQualityEnum",
-      "type": "string"
-    },
-    "MicroserviceInstance": {
-      "properties": {
-        "functionality": {
-          "default": "",
-          "title": "Functionality",
-          "type": "string"
+    "properties": {
+        "metadata": {
+            "title": "Metadata",
+            "type": "object"
         },
-        "id": {
-          "format": "uuid",
-          "title": "Id",
-          "type": "string"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "stage": {
-          "anyOf": [
-            {
-              "type": "string"
+        "metrics": {
+            "items": {
+                "$ref": "#/$defs/FlattenMetric"
             },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Stage"
+            "title": "Metrics",
+            "type": "array"
         }
-      },
-      "required": [
-        "id",
-        "name"
-      ],
-      "title": "MicroserviceInstance",
-      "type": "object"
     },
-    "ReportTypeEnum": {
-      "enum": [
-        "data_report",
-        "service_report",
-        "ml_specific_report",
-        "security_report"
-      ],
-      "title": "ReportTypeEnum",
-      "type": "string"
-    },
-    "ResourcesUtilizationMetricNameEnum": {
-      "enum": [
-        "cpu_usage",
-        "memory_usage"
-      ],
-      "title": "ResourcesUtilizationMetricNameEnum",
-      "type": "string"
-    },
-    "ServiceQualityEnum": {
-      "enum": [
-        "availability",
-        "reliability",
-        "response_time"
-      ],
-      "title": "ServiceQualityEnum",
-      "type": "string"
-    }
-  },
-  "properties": {
-    "metadata": {
-      "default": {},
-      "title": "Metadata",
-      "type": "object"
-    },
-    "metrics": {
-      "default": [],
-      "items": {
-        "$ref": "#/$defs/FlattenMetric"
-      },
-      "title": "Metrics",
-      "type": "array"
-    }
-  },
-  "title": "GeneralApplicationReportModel",
-  "type": "object"
+    "title": "GeneralApplicationReportModel",
+    "type": "object"
 }

@@ -45,7 +45,7 @@ client = QoaClient(config_dict=client_conf)
 
 Key details:
 
-- `connector` is a **list** of connector entries, not a dict. Each entry has `name`, `connector_class`, and `config` (matched to the connector class). `QoaClient.init_connector` currently wires only `AMQP` and `Debug`; the other classes (`MqttConnector`, `KafkaConnector`, `SocketConnector`, `PromConnector`) can be instantiated directly but are not selected through `connector_class` yet.
+- `connector` is a **list** of connector entries, not a dict. Each entry has `name`, `connector_class`, and `config` (matched to the connector class). `QoaClient.init_connector` currently dispatches only `AMQP` and `Debug`. `ServiceAPIEnum` also validates `REST`, `MQTT`, `Kafka`, `coapp`, and `socket`, but those values will raise `RuntimeError("Connector config is not of correct type")` at runtime. The corresponding classes (`MqttConnector`, `KafkaConnector`, `SocketConnector`, `PromConnector`) can still be instantiated directly.
 - `client.functionality` is a free-form string (suggested values from `FunctionalityEnum`: `REST`, `TensorFlow`, `Transformation`, `Max Aggregate`).
 - `client.role` is a free-form string. `StakeholderRoleEnum` offers suggested values (`ml_consumer`, `ml_provider`, `ml_infrastructure`), but the `ClientInfo.role` Field description and shipped examples also use ad-hoc values (e.g. `ml`, `producer`, `consumer`) — the runtime treats it as opaque metadata.
 - If `connector` is omitted, `registration_url` must be provided at either config level or as a constructor argument.

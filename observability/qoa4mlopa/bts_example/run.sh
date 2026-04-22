@@ -10,4 +10,6 @@ curl --location --request PUT 'localhost:8181/v1/data/bts/contract' -H 'Content-
 
 docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
-docker run -p 9090:9090 -v "$(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml" "prom/prometheus"
+# Supply your own prometheus.yml scrape config and uncomment the line below
+# (prometheus.yml is not shipped with this example).
+# docker run -p 9090:9090 -v "$(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml" "prom/prometheus"

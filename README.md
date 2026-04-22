@@ -19,13 +19,13 @@ QoA4ML consists of a set of measurement probes, utilities and specs for supporti
 
 ## QoA4ML Specification
 
-The design of QoA4ML specification is in [language](language/)
+The JSON schemas and OPA rego rules for the QoA4ML specification live in [language/](language/).
 
 ## QoA4ML Probes
 
 We include [different probes](src/qoa4ml/probes/) for measuring quality of data, computing resource performance, etc.
 
-## 
+## QoAClient
 
 Developers can call many functions from a [QoAClient](src/qoa4ml/qoa_client.py) and QoA4ML's [utilities](src/qoa4ml/utils) to evaluate/report ML-specific attributes (e.g., data quality, inference performance), build the quality reports, and send them to the observation services.
 The QoAClient can be initiated with various configurations for specifying observation server and communication protocols (e.g., messaging) in different formats (e.g., json and yaml).
@@ -37,7 +37,7 @@ QoA Reports are implemented in [QoA4ML Reports](src/qoa4ml/reports/), an object 
 
 ## Examples
 
-Examples are in [examples](example/).
+Examples are in [example/](example/).
 
 ## QoA4ML Observability
 
@@ -61,6 +61,6 @@ Another new engine is currently developed under [rohe_ObService](observability/r
 
 ## References
 
-- Hong-Linh Truong, Minh-Tri Nguyen, ["QoA4ML -A Framework for Supporting Contracts in Machine Learning Services"](https://research.aalto.fi/files/65786264/main.pdf), [The 2021 IEEE International Conference on Web Services (ICWS 2021)](https://conferences.computer.org/icws/2021/), to appear.
-- Minh-Tri Nguyen, Hong-Linh Truong [Demonstration Paper: Monitoring Machine Learning Contracts with QoA4ML](https://research.aalto.fi/files/56621517/main.pdf), Companion of the 2021 ACM/SPEC International Conference on Performance Engineering (ICPE'21), Apr. 19-23, 2021
+- Hong-Linh Truong, Minh-Tri Nguyen, ["QoA4ML -A Framework for Supporting Contracts in Machine Learning Services"](https://acris.aalto.fi/ws/portalfiles/portal/65786264/main.pdf), [The 2021 IEEE International Conference on Web Services (ICWS 2021)](https://conferences.computer.org/icws/2021/).
+- Minh-Tri Nguyen, Hong-Linh Truong [Demonstration Paper: Monitoring Machine Learning Contracts with QoA4ML](https://dl.acm.org/doi/epdf/10.1145/3447545.3451172), Companion of the 2021 ACM/SPEC International Conference on Performance Engineering (ICPE'21), Apr. 19-23, 2021
 - https://www.researchgate.net/publication/341762862_R3E_-An_Approach_to_Robustness_Reliability_Resilience_and_Elasticity_Engineering_for_End-to-End_Machine_Learning_Systems

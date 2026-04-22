@@ -1,404 +1,403 @@
 {
-  "$defs": {
-    "DataQualityEnum": {
-      "enum": [
-        "accuracy",
-        "completeness",
-        "total_errors",
-        "error_ratios",
-        "duplicate_ratio",
-        "total_duplicate",
-        "null_count",
-        "null_correlations",
-        "total_valid",
-        "total_none",
-        "none_ratio"
-      ],
-      "title": "DataQualityEnum",
-      "type": "string"
-    },
-    "EnsembleInferenceReport": {
-      "properties": {
-        "data": {
-          "additionalProperties": {
-            "$ref": "#/$defs/StageReport"
-          },
-          "default": {},
-          "title": "Data",
-          "type": "object"
+    "$defs": {
+        "DataQualityEnum": {
+            "enum": [
+                "data_accuracy",
+                "completeness",
+                "total_errors",
+                "error_ratios",
+                "duplicate_ratio",
+                "total_duplicate",
+                "null_count",
+                "null_correlations",
+                "total_valid",
+                "total_none",
+                "none_ratio"
+            ],
+            "title": "DataQualityEnum",
+            "type": "string"
         },
-        "ml_specific": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/InferenceGraph"
+        "EnsembleInferenceReport": {
+            "properties": {
+                "service": {
+                    "additionalProperties": {
+                        "$ref": "#/$defs/StageReport"
+                    },
+                    "title": "Service",
+                    "type": "object"
+                },
+                "data": {
+                    "additionalProperties": {
+                        "$ref": "#/$defs/StageReport"
+                    },
+                    "title": "Data",
+                    "type": "object"
+                },
+                "security": {
+                    "additionalProperties": {
+                        "$ref": "#/$defs/StageReport"
+                    },
+                    "title": "Security",
+                    "type": "object"
+                },
+                "ml_specific": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/InferenceGraph"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null
+                }
             },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "service": {
-          "additionalProperties": {
-            "$ref": "#/$defs/StageReport"
-          },
-          "default": {},
-          "title": "Service",
-          "type": "object"
-        }
-      },
-      "title": "EnsembleInferenceReport",
-      "type": "object"
-    },
-    "ExecutionGraph": {
-      "properties": {
-        "end_point": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MicroserviceInstance"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "linked_list": {
-          "additionalProperties": {
-            "$ref": "#/$defs/LinkedInstance_MicroserviceInstance_"
-          },
-          "title": "Linked List",
-          "type": "object"
-        }
-      },
-      "required": [
-        "linked_list"
-      ],
-      "title": "ExecutionGraph",
-      "type": "object"
-    },
-    "ImageQualityNameEnum": {
-      "enum": [
-        "image_size",
-        "object_size",
-        "color_mode",
-        "color_channel"
-      ],
-      "title": "ImageQualityNameEnum",
-      "type": "string"
-    },
-    "InferenceGraph": {
-      "properties": {
-        "end_point": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/InferenceInstance"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "linked_list": {
-          "additionalProperties": {
-            "$ref": "#/$defs/LinkedInstance_InferenceInstance_"
-          },
-          "default": {},
-          "title": "Linked List",
-          "type": "object"
-        }
-      },
-      "title": "InferenceGraph",
-      "type": "object"
-    },
-    "InferenceInstance": {
-      "properties": {
-        "functionality": {
-          "title": "Functionality",
-          "type": "string"
-        },
-        "inference_id": {
-          "format": "uuid",
-          "title": "Inference Id",
-          "type": "string"
-        },
-        "instance_id": {
-          "format": "uuid",
-          "title": "Instance Id",
-          "type": "string"
-        },
-        "metrics": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/Metric"
-          },
-          "title": "Metrics",
-          "type": "array"
-        },
-        "prediction": {
-          "anyOf": [
-            {
-              "type": "object"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Prediction"
-        }
-      },
-      "required": [
-        "inference_id",
-        "instance_id",
-        "functionality"
-      ],
-      "title": "InferenceInstance",
-      "type": "object"
-    },
-    "LinkedInstance_InferenceInstance_": {
-      "properties": {
-        "instance": {
-          "$ref": "#/$defs/InferenceInstance"
-        },
-        "previous": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/InferenceInstance"
-          },
-          "title": "Previous",
-          "type": "array"
-        }
-      },
-      "required": [
-        "instance"
-      ],
-      "title": "LinkedInstance[InferenceInstance]",
-      "type": "object"
-    },
-    "LinkedInstance_MicroserviceInstance_": {
-      "properties": {
-        "instance": {
-          "$ref": "#/$defs/MicroserviceInstance"
-        },
-        "previous": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/MicroserviceInstance"
-          },
-          "title": "Previous",
-          "type": "array"
-        }
-      },
-      "required": [
-        "instance"
-      ],
-      "title": "LinkedInstance[MicroserviceInstance]",
-      "type": "object"
-    },
-    "MLModelQualityEnum": {
-      "enum": [
-        "auc",
-        "accuracy",
-        "mse",
-        "precision",
-        "recall"
-      ],
-      "title": "MLModelQualityEnum",
-      "type": "string"
-    },
-    "Metric": {
-      "properties": {
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Description"
-        },
-        "metric_name": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ServiceQualityEnum"
-            },
-            {
-              "$ref": "#/$defs/MLModelQualityEnum"
-            },
-            {
-              "$ref": "#/$defs/DataQualityEnum"
-            },
-            {
-              "$ref": "#/$defs/ResourcesUtilizationMetricNameEnum"
-            },
-            {
-              "$ref": "#/$defs/ImageQualityNameEnum"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "title": "Metric Name"
-        },
-        "records": {
-          "default": [],
-          "items": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "title": "Records",
-          "type": "array"
-        },
-        "unit": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Unit"
-        }
-      },
-      "required": [
-        "metric_name"
-      ],
-      "title": "Metric",
-      "type": "object"
-    },
-    "MicroserviceInstance": {
-      "properties": {
-        "functionality": {
-          "default": "",
-          "title": "Functionality",
-          "type": "string"
-        },
-        "id": {
-          "format": "uuid",
-          "title": "Id",
-          "type": "string"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "stage": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Stage"
-        }
-      },
-      "required": [
-        "id",
-        "name"
-      ],
-      "title": "MicroserviceInstance",
-      "type": "object"
-    },
-    "ResourcesUtilizationMetricNameEnum": {
-      "enum": [
-        "cpu_usage",
-        "memory_usage"
-      ],
-      "title": "ResourcesUtilizationMetricNameEnum",
-      "type": "string"
-    },
-    "ServiceQualityEnum": {
-      "enum": [
-        "availability",
-        "reliability",
-        "response_time"
-      ],
-      "title": "ServiceQualityEnum",
-      "type": "string"
-    },
-    "StageReport": {
-      "properties": {
-        "metrics": {
-          "additionalProperties": {
-            "additionalProperties": {
-              "$ref": "#/$defs/Metric"
-            },
+            "title": "EnsembleInferenceReport",
             "type": "object"
-          },
-          "title": "Metrics",
-          "type": "object"
         },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "name",
-        "metrics"
-      ],
-      "title": "StageReport",
-      "type": "object"
-    }
-  },
-  "properties": {
-    "execution_graph": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/ExecutionGraph"
+        "ExecutionGraph": {
+            "properties": {
+                "end_point": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/MicroserviceInstance"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null
+                },
+                "linked_list": {
+                    "additionalProperties": {
+                        "$ref": "#/$defs/LinkedInstance_MicroserviceInstance_"
+                    },
+                    "title": "Linked List",
+                    "type": "object"
+                }
+            },
+            "required": [
+                "linked_list"
+            ],
+            "title": "ExecutionGraph",
+            "type": "object"
         },
-        {
-          "type": "null"
+        "ImageQualityNameEnum": {
+            "enum": [
+                "image_size",
+                "object_size",
+                "color_mode",
+                "color_channel"
+            ],
+            "title": "ImageQualityNameEnum",
+            "type": "string"
+        },
+        "InferenceGraph": {
+            "properties": {
+                "end_point": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/InferenceInstance"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null
+                },
+                "linked_list": {
+                    "additionalProperties": {
+                        "$ref": "#/$defs/LinkedInstance_InferenceInstance_"
+                    },
+                    "title": "Linked List",
+                    "type": "object"
+                }
+            },
+            "title": "InferenceGraph",
+            "type": "object"
+        },
+        "InferenceInstance": {
+            "properties": {
+                "inference_id": {
+                    "format": "uuid",
+                    "title": "Inference Id",
+                    "type": "string"
+                },
+                "instance_id": {
+                    "format": "uuid",
+                    "title": "Instance Id",
+                    "type": "string"
+                },
+                "functionality": {
+                    "title": "Functionality",
+                    "type": "string"
+                },
+                "metrics": {
+                    "items": {
+                        "$ref": "#/$defs/Metric"
+                    },
+                    "title": "Metrics",
+                    "type": "array"
+                },
+                "prediction": {
+                    "anyOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Prediction"
+                }
+            },
+            "required": [
+                "inference_id",
+                "instance_id",
+                "functionality"
+            ],
+            "title": "InferenceInstance",
+            "type": "object"
+        },
+        "LinkedInstance_InferenceInstance_": {
+            "properties": {
+                "previous": {
+                    "items": {
+                        "$ref": "#/$defs/InferenceInstance"
+                    },
+                    "title": "Previous",
+                    "type": "array"
+                },
+                "instance": {
+                    "$ref": "#/$defs/InferenceInstance"
+                }
+            },
+            "required": [
+                "instance"
+            ],
+            "title": "LinkedInstance[InferenceInstance]",
+            "type": "object"
+        },
+        "LinkedInstance_MicroserviceInstance_": {
+            "properties": {
+                "previous": {
+                    "items": {
+                        "$ref": "#/$defs/MicroserviceInstance"
+                    },
+                    "title": "Previous",
+                    "type": "array"
+                },
+                "instance": {
+                    "$ref": "#/$defs/MicroserviceInstance"
+                }
+            },
+            "required": [
+                "instance"
+            ],
+            "title": "LinkedInstance[MicroserviceInstance]",
+            "type": "object"
+        },
+        "MLModelQualityEnum": {
+            "enum": [
+                "auc",
+                "model_accuracy",
+                "mse",
+                "precision",
+                "recall"
+            ],
+            "title": "MLModelQualityEnum",
+            "type": "string"
+        },
+        "Metric": {
+            "properties": {
+                "metric_name": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ServiceQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/MLModelQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/DataQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/ResourcesUtilizationMetricNameEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/ImageQualityNameEnum"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "title": "Metric Name"
+                },
+                "records": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "items": {},
+                                "type": "array"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "title": "Records",
+                    "type": "array"
+                },
+                "unit": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Unit"
+                },
+                "description": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Description"
+                }
+            },
+            "required": [
+                "metric_name"
+            ],
+            "title": "Metric",
+            "type": "object"
+        },
+        "MicroserviceInstance": {
+            "properties": {
+                "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                },
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "functionality": {
+                    "default": "",
+                    "title": "Functionality",
+                    "type": "string"
+                },
+                "stage": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Stage"
+                }
+            },
+            "required": [
+                "id",
+                "name"
+            ],
+            "title": "MicroserviceInstance",
+            "type": "object"
+        },
+        "ResourcesUtilizationMetricNameEnum": {
+            "enum": [
+                "cpu_usage",
+                "memory_usage"
+            ],
+            "title": "ResourcesUtilizationMetricNameEnum",
+            "type": "string"
+        },
+        "ServiceQualityEnum": {
+            "enum": [
+                "availability",
+                "reliability",
+                "response_time"
+            ],
+            "title": "ServiceQualityEnum",
+            "type": "string"
+        },
+        "StageReport": {
+            "properties": {
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "metrics": {
+                    "additionalProperties": {
+                        "additionalProperties": {
+                            "$ref": "#/$defs/Metric"
+                        },
+                        "type": "object"
+                    },
+                    "title": "Metrics",
+                    "type": "object"
+                }
+            },
+            "required": [
+                "name",
+                "metrics"
+            ],
+            "title": "StageReport",
+            "type": "object"
         }
-      ],
-      "default": null
     },
-    "inference_report": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/EnsembleInferenceReport"
+    "properties": {
+        "metadata": {
+            "title": "Metadata",
+            "type": "object"
         },
-        {
-          "type": "null"
+        "inference_report": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/EnsembleInferenceReport"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "default": null
+        },
+        "execution_graph": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/ExecutionGraph"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "default": null
         }
-      ],
-      "default": null
     },
-    "metadata": {
-      "default": {},
-      "title": "Metadata",
-      "type": "object"
-    }
-  },
-  "title": "RoheReportModel",
-  "type": "object"
+    "title": "RoheReportModel",
+    "type": "object"
 }

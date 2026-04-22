@@ -35,7 +35,12 @@ class DataQualityEnum(QoAttribute):
     """
 
     COMPLETENESS = "completeness"
-    """The ratio between received and expected number of data attributes sent to the service"""
+    """The ratio between received and expected number of data attributes sent to the service.
+
+    User-populated only: no built-in ``eva_*`` function produces this key;
+    clients compute completeness against their own expected-schema and
+    report it via ``QoaClient.observe_metric``.
+    """
 
     TOTAL_ERRORS = "total_errors"
     """Total number of errors as given by the user in the data"""

@@ -19,7 +19,6 @@ archive/
 *.pem
 observability/odop_obs/logs/*.txt
 observability/odop_obs/tinyflux/*.csv
-.python-version
 plan/
 .pytest_cache/
 .mypy_cache/

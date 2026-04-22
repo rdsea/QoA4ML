@@ -121,6 +121,11 @@ class AmqpConnector(BaseConnector):
         expiration : int, optional
             Message expiration time in milliseconds, default is 1000.
 
+        Raises
+        ------
+        AmqpPublishError
+            If publishing fails even after a single broker reconnect + retry.
+
         Notes
         -----
         - If `corr_id` is not provided, a new UUID will be generated.

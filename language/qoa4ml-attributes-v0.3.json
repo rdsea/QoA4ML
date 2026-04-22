@@ -1,65 +1,65 @@
 {
-  "data": {
-    "accuracy": {
-      "description": "The ratio between correct and total data the service received (%)"
+    "data": {
+        "data_accuracy": {
+            "description": "The ratio between correct and total data the service received (%).\n\n    The string value is namespaced (``data_accuracy``) so it cannot collide\n    with ``MLModelQualityEnum.ACCURACY`` when both feed the ``MetricNameEnum``\n    union during Pydantic coercion."
+        },
+        "completeness": {
+            "description": "The ratio between received and expected number of data attributes sent to the service.\n\n    User-populated only: no built-in ``eva_*`` function produces this key;\n    clients compute completeness against their own expected-schema and\n    report it via ``QoaClient.observe_metric``."
+        },
+        "total_errors": {
+            "description": "Total number of errors as given by the user in the data"
+        },
+        "error_ratios": {
+            "description": "Ratio of errors in the data"
+        },
+        "duplicate_ratio": {
+            "description": "Ratio of duplicate entries in the data"
+        },
+        "total_duplicate": {
+            "description": "Total number of duplicate entries in the data"
+        },
+        "null_count": {
+            "description": "Count of null or undefined entries in the data"
+        },
+        "null_correlations": {
+            "description": "Correlation between null or undefined entries in the data"
+        },
+        "total_valid": {
+            "description": "Total number of valid entries in the data"
+        },
+        "total_none": {
+            "description": "Total number of none or empty entries in the data"
+        },
+        "none_ratio": {
+            "description": "Ratio of none or empty entries in the data"
+        }
     },
-    "completeness": {
-      "description": "The ratio between received and expected number of data attributes sent to the service"
+    "mlmodels": {
+        "auc": {
+            "description": "The measure of the ability of a classifier to distinguish between classes and is used as a summary of the ROC curve"
+        },
+        "model_accuracy": {
+            "description": "Can be measured in different ways such as confidence score in classification models.\n\n    The string value is namespaced (``model_accuracy``) to keep it distinct\n    from ``DataQualityEnum.ACCURACY`` (``data_accuracy``) when both feed the\n    ``MetricNameEnum`` union."
+        },
+        "mse": {
+            "description": "Mean square error used for regression models"
+        },
+        "precision": {
+            "description": "The fraction of true positive responses over total number of positive responses"
+        },
+        "recall": {
+            "description": "The fraction of true positive responses over total number of correct responses"
+        }
     },
-    "duplicate_ratio": {
-      "description": "Ratio of duplicate entries in the data"
-    },
-    "error_ratios": {
-      "description": "Ratio of errors in the data"
-    },
-    "none_ratio": {
-      "description": "Ratio of none or empty entries in the data"
-    },
-    "null_correlations": {
-      "description": "Correlation between null or undefined entries in the data"
-    },
-    "null_count": {
-      "description": "Count of null or undefined entries in the data"
-    },
-    "total_duplicate": {
-      "description": "Total number of duplicate entries in the data"
-    },
-    "total_errors": {
-      "description": "Total number of errors as given by the user in the data"
-    },
-    "total_none": {
-      "description": "Total number of none or empty entries in the data"
-    },
-    "total_valid": {
-      "description": "Total number of valid entries in the data"
+    "services": {
+        "availability": {
+            "description": "The ratio between up time and down time of the service (%)"
+        },
+        "reliability": {
+            "description": "The ratio between correct and total service responses (%)"
+        },
+        "response_time": {
+            "description": "The response time of each microservice, measured by the time period between receiving and replying the request (s)"
+        }
     }
-  },
-  "mlmodels": {
-    "accuracy": {
-      "description": "Can be measured in different ways such as confidence score in classification models"
-    },
-    "auc": {
-      "description": "The measure of the ability of a classifier to distinguish between classes and is used as a summary of the ROC curve"
-    },
-    "mse": {
-      "description": "Mean square error used for regression models"
-    },
-    "precision": {
-      "description": "The fraction of true positive responses over total number of positive responses"
-    },
-    "recall": {
-      "description": "The fraction of true positive responses over total number of correct responses"
-    }
-  },
-  "services": {
-    "availability": {
-      "description": "The ratio between up time and down time of the service (%)"
-    },
-    "reliability": {
-      "description": "The ratio between correct and total service responses (%)"
-    },
-    "response_time": {
-      "description": "The response time of each microservice, measured by the time period between receiving and replying the request (s)"
-    }
-  }
 }

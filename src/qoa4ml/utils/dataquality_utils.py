@@ -115,8 +115,8 @@ def eva_erronous(data: np.ndarray | pd.DataFrame, errors: list | None = None):
     --------
     dict or None
         A dictionary containing the following keys if successful:
-          - DataQualityEnum.total_errors: Total number of errors.
-          - DataQualityEnum.error_ratios: Percentage of errors.
+          - DataQualityEnum.TOTAL_ERRORS: Total number of errors.
+          - DataQualityEnum.ERROR_RATIOS: Percentage of errors.
         Returns None if the input data type is unsupported or if an exception occurs.
     """
     _require_pandas()
@@ -159,8 +159,8 @@ def eva_duplicate(data: np.ndarray | pd.DataFrame):
     --------
     dict or None
         A dictionary containing the following keys if successful:
-          - DataQualityEnum.duplicate_ratio: Percentage of duplicate data.
-          - DataQualityEnum.total_duplicate: Total number of duplicate entries.
+          - DataQualityEnum.DUPLICATE_RATIO: Percentage of duplicate data.
+          - DataQualityEnum.TOTAL_DUPLICATE: Total number of duplicate entries.
         Returns None if the input data type is unsupported or if an exception occurs.
     """
     _require_pandas()
@@ -208,8 +208,8 @@ def eva_missing(
     --------
     dict or None
         A dictionary containing:
-          - DataQualityEnum.null_count: Count of missing values (if null_count is True).
-          - DataQualityEnum.null_correlations: Correlation matrix of missing values (if correlations is True).
+          - DataQualityEnum.NULL_COUNT: Count of missing values (if null_count is True).
+          - DataQualityEnum.NULL_CORRELATIONS: Correlation matrix of missing values (if correlations is True).
         Returns None if the input data type is unsupported or if an exception occurs.
     """
     _require_pandas()
@@ -255,9 +255,9 @@ def eva_none(data: np.ndarray | pd.DataFrame):
     --------
     dict or None
         A dictionary containing the following keys if successful:
-          - DataQualityEnum.total_valid: Total count of valid (non-NaN) entries.
-          - DataQualityEnum.total_none: Total count of None (NaN) entries.
-          - DataQualityEnum.none_ratio: Percentage of none/NaN entries
+          - DataQualityEnum.TOTAL_VALID: Total count of valid (non-NaN) entries.
+          - DataQualityEnum.TOTAL_NONE: Total count of None (NaN) entries.
+          - DataQualityEnum.NONE_RATIO: Percentage of none/NaN entries
             (``100 * none_count / total``; ``0.0`` when the dataset is
             empty). Field name is authoritative — previous versions
             accidentally computed the *valid* ratio.

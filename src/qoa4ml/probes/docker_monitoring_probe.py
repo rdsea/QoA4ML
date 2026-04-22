@@ -30,8 +30,6 @@ class DockerMonitoringProbe(Probe):
     ----------
     config : DockerProbeConfig
         The Docker monitoring probe configuration.
-    obs_service_url : str
-        The URL of the observation service, if registration is required.
     docker_client : docker.DockerClient
         The Docker client for communicating with Docker API.
 

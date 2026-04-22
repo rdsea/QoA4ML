@@ -124,7 +124,9 @@ class MQTTConnectorConfig(BaseModel):
         description="MQTT topic to subscribe to for incoming messages"
     )
     out_queue: str = Field(description="MQTT topic to publish outgoing messages to")
-    broker_url: str = Field(description="MQTT broker URL, e.g. 'mqtt://localhost'")
+    broker_url: str = Field(
+        description="MQTT broker hostname (passed to paho.Client.connect), e.g. 'localhost'"
+    )
     broker_port: int = Field(description="Port number of the MQTT broker, e.g. 1883")
     broker_keepalive: int = Field(
         description="Keep-alive interval in seconds for the MQTT connection"

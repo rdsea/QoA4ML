@@ -1,3 +1,7 @@
+# NOTE: this service uses a flat sibling import for ``rohe_Agent`` and therefore
+# must be launched with ``observability/rohe_ObService/`` as the current working
+# directory (e.g. ``cd observability/rohe_ObService && python rohe_ObService.py``).
+# Running it via ``python -m`` from the repo root will fail the import below.
 import argparse
 import copy
 import hmac
@@ -94,7 +98,9 @@ class Rohe_ObService(Resource):  # noqa: N801 - preserved external class name
     Configuration dictionary must supply three keys:
 
     - ``database``: mapping consumed by :class:`Rohe_Agent` to build a
-      Mongo connection (keys: ``url``, ``db_name``, ``metric_collection``).
+      Mongo connection. Required keys: ``url``, ``db_name``.
+      ``metric_collection`` is injected per request by this service and
+      should not be supplied by the user.
     - ``connector``: mapping from connector-name to ``{"conf": {...}}`` where
       ``conf`` contains AMQP wiring (``exchange_name``, ``out_routing_key``).
     - ``collector``: same shape as ``connector``.

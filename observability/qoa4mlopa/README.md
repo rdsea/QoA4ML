@@ -26,6 +26,14 @@ $docker run -p 8181:8181 openpolicyagent/opa:latest run --server --set=decision_
 
 You can find [samples of contracts](../../language/qoa4mlopa/); the core QoA4ML terms are in [the language directory](../../language/). Worked examples live alongside this README in the per-scenario directories (`bts_example/`, `malware_detection/`, `object_detection/`).
 
+> **Legacy note:** the ``contract.json`` files under ``malware_detection/``
+> and ``object_detection/`` use a pre-0.3 contract shape (e.g. ``serviceapis:
+> "mptt"``, flat ``quality.services`` lists) and will **not** validate against
+> the current ``MLContract`` Pydantic schema or ``language/qoa4ml-contract-
+> schema-v0.3.json``. They are retained as OPA policy examples only; do not
+> use them as templates for new contracts. Start from the JSON schema in
+> ``language/`` instead.
+
 ## Add a contract
 
 Here are few examples for testings. Note that you can look at [the OPA APIs for understanding how to the APIs](https://www.openpolicyagent.org/docs/latest)

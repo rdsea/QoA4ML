@@ -62,9 +62,10 @@ def test_system_probe_config_defaults_optional_flags() -> None:
 
 
 def test_docker_probe_config_defaults_optional_flags() -> None:
-    cfg = DockerProbeConfig(probe_type="docker", frequency=1, container_name="x")
+    cfg = DockerProbeConfig(probe_type="docker", frequency=1, container_list=["x"])
     assert cfg.require_register is False
     assert cfg.log_latency_flag is False
+    assert cfg.container_list == ["x"]
 
 
 # --- High: Memory unit labels ---

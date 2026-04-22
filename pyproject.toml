@@ -26,7 +26,7 @@ documentation = "https://rdsea.github.io/QoA4ML/"
 requires-python = ">=3.12"
 classifiers = [
   "License :: OSI Approved :: Apache Software License",
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries",
@@ -52,12 +52,11 @@ dependencies = [
 
 optional-dependencies.kafka = ["confluent-kafka>=2.4.0"]
 optional-dependencies.ml = [
-  "paho-mqtt==1.6.1",
+  "paho-mqtt>=2.0,<3",
   "Pillow>=10.0.0",
   "prometheus-client==0.16.0",
   "tensorflow>=2.15.0",
   "pandas>=2.2.2",
-  # "ydata-quality==0.1.0",
 ]
 
 optional-dependencies.otel = [
@@ -84,7 +83,7 @@ AaltoSEA = "https://rdsea.github.io/"
 [dependency-groups]
 dev = [
   "pre-commit",
-  "ruff>=0.15.7",
+  "ruff>=0.15.7,<0.16",
   "codespell",
   "mypy",
   "pytest>=8.3.2",
@@ -100,7 +99,7 @@ docstring-code-format = true
 docstring-code-line-length = 10
 
 [tool.ruff.lint.pydocstyle]
-convention = "pep257" # Accepts: "google", "numpy", or "pep257".
+convention = "numpy" # Accepts: "google", "numpy", or "pep257".
 
 [tool.ruff.lint]
 exclude = ["src/qoa4ml/utils/pynvml_forked.py"]

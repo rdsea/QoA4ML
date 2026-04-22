@@ -41,8 +41,6 @@ class ProcessMonitoringProbe(Probe):
         The environment in which the process is running.
     process : psutil.Process
         The psutil Process object for the monitored process.
-    obs_service_url : Optional[str]
-        The URL of the observation service, if registration is required.
     metadata : Union[dict, resources_report_model.ProcessMetadata]
         Metadata related to the monitored process.
 

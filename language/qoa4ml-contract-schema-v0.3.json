@@ -1,745 +1,744 @@
 {
-  "$defs": {
-    "AggregateFunctionEnum": {
-      "enum": [
-        "MIN",
-        "MAX",
-        "AVERAGE",
-        "SUM",
-        "COUNT",
-        "OR",
-        "AND",
-        "PRODUCT"
-      ],
-      "title": "AggregateFunctionEnum",
-      "type": "string"
-    },
-    "Condition": {
-      "properties": {
-        "operator": {
-          "$ref": "#/$defs/OperatorEnum"
+    "$defs": {
+        "AggregateFunctionEnum": {
+            "enum": [
+                "MIN",
+                "MAX",
+                "AVERAGE",
+                "SUM",
+                "COUNT",
+                "OR",
+                "AND",
+                "PRODUCT"
+            ],
+            "title": "AggregateFunctionEnum",
+            "type": "string"
         },
-        "value": {
-          "anyOf": [
-            {
-              "type": "object"
+        "Condition": {
+            "properties": {
+                "operator": {
+                    "$ref": "#/$defs/OperatorEnum"
+                },
+                "value": {
+                    "anyOf": [
+                        {
+                            "type": "object"
+                        },
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "integer"
+                        }
+                    ],
+                    "title": "Value"
+                }
             },
-            {
-              "type": "number"
+            "required": [
+                "operator",
+                "value"
+            ],
+            "title": "Condition",
+            "type": "object"
+        },
+        "CostConstraint": {
+            "properties": {
+                "name": {
+                    "default": "cost_constraint",
+                    "title": "Name",
+                    "type": "string"
+                },
+                "constraint_list": {
+                    "items": {
+                        "$ref": "#/$defs/MetricConstraint"
+                    },
+                    "title": "Constraint List",
+                    "type": "array"
+                }
             },
-            {
-              "type": "integer"
-            }
-          ],
-          "title": "Value"
-        }
-      },
-      "required": [
-        "operator",
-        "value"
-      ],
-      "title": "Condition",
-      "type": "object"
-    },
-    "CostConstraint": {
-      "properties": {
-        "constraint_list": {
-          "items": {
-            "$ref": "#/$defs/MetricConstraint"
-          },
-          "title": "Constraint List",
-          "type": "array"
+            "required": [
+                "constraint_list"
+            ],
+            "title": "CostConstraint",
+            "type": "object"
         },
-        "name": {
-          "default": "cost_constraint",
-          "title": "Name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "constraint_list"
-      ],
-      "title": "CostConstraint",
-      "type": "object"
-    },
-    "DataConstraint": {
-      "properties": {
-        "constraint_list": {
-          "items": {
-            "$ref": "#/$defs/MetricConstraint"
-          },
-          "title": "Constraint List",
-          "type": "array"
-        },
-        "name": {
-          "default": "data_constaint",
-          "title": "Name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "constraint_list"
-      ],
-      "title": "DataConstraint",
-      "type": "object"
-    },
-    "DataFormatEnum": {
-      "enum": [
-        "binary",
-        "csv",
-        "json",
-        "avro",
-        "png",
-        "jpg",
-        "mp4"
-      ],
-      "title": "DataFormatEnum",
-      "type": "string"
-    },
-    "DataQualityEnum": {
-      "enum": [
-        "accuracy",
-        "completeness",
-        "total_errors",
-        "error_ratios",
-        "duplicate_ratio",
-        "total_duplicate",
-        "null_count",
-        "null_correlations",
-        "total_valid",
-        "total_none",
-        "none_ratio"
-      ],
-      "title": "DataQualityEnum",
-      "type": "string"
-    },
-    "DataSpecs": {
-      "properties": {
-        "formats": {
-          "items": {
-            "$ref": "#/$defs/DataFormatEnum"
-          },
-          "title": "Formats",
-          "type": "array"
-        },
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "types": {
-          "items": {
-            "$ref": "#/$defs/DataTypeEnum"
-          },
-          "title": "Types",
-          "type": "array"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "types",
-        "formats"
-      ],
-      "title": "DataSpecs",
-      "type": "object"
-    },
-    "DataTypeEnum": {
-      "enum": [
-        "video",
-        "image",
-        "message"
-      ],
-      "title": "DataTypeEnum",
-      "type": "string"
-    },
-    "DevelopmentEnvironmentEnum": {
-      "enum": [
-        "kerash5",
-        "onnx"
-      ],
-      "title": "DevelopmentEnvironmentEnum",
-      "type": "string"
-    },
-    "FairnessConstraint": {
-      "properties": {
-        "constraint_list": {
-          "items": {
-            "$ref": "#/$defs/MetricConstraint"
-          },
-          "title": "Constraint List",
-          "type": "array"
-        },
-        "name": {
-          "default": "fairness_constraint",
-          "title": "Name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "constraint_list"
-      ],
-      "title": "FairnessConstraint",
-      "type": "object"
-    },
-    "ImageQualityNameEnum": {
-      "enum": [
-        "image_size",
-        "object_size",
-        "color_mode",
-        "color_channel"
-      ],
-      "title": "ImageQualityNameEnum",
-      "type": "string"
-    },
-    "InferenceModeEnum": {
-      "enum": [
-        "static",
-        "dynamic"
-      ],
-      "title": "InferenceModeEnum",
-      "type": "string"
-    },
-    "InfrastructureEnum": {
-      "enum": [
-        "Raspberry Pi 4 Model B",
-        "NVIDIA Jetson Nano",
-        "NVIDIA Jetson Orin Nano",
-        "NVIDIA Jetson AGX Xavier",
-        "Beelink BT3",
-        "Rock Pi N10"
-      ],
-      "title": "InfrastructureEnum",
-      "type": "string"
-    },
-    "InterpretabilityConstraint": {
-      "properties": {
-        "explainability": {
-          "title": "Explainability",
-          "type": "object"
-        }
-      },
-      "required": [
-        "explainability"
-      ],
-      "title": "InterpretabilityConstraint",
-      "type": "object"
-    },
-    "MLModelQualityEnum": {
-      "enum": [
-        "auc",
-        "accuracy",
-        "mse",
-        "precision",
-        "recall"
-      ],
-      "title": "MLModelQualityEnum",
-      "type": "string"
-    },
-    "MLSpecificConstraint": {
-      "properties": {
-        "constraint_list": {
-          "items": {
-            "$ref": "#/$defs/MetricConstraint"
-          },
-          "title": "Constraint List",
-          "type": "array"
-        },
-        "name": {
-          "default": "ml_specific_constraint",
-          "title": "Name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "constraint_list"
-      ],
-      "title": "MLSpecificConstraint",
-      "type": "object"
-    },
-    "MLSpecs": {
-      "properties": {
-        "development_environment": {
-          "items": {
-            "$ref": "#/$defs/DevelopmentEnvironmentEnum"
-          },
-          "title": "Development Environment",
-          "type": "array"
-        },
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "inference_modes": {
-          "items": {
-            "$ref": "#/$defs/InferenceModeEnum"
-          },
-          "title": "Inference Modes",
-          "type": "array"
-        },
-        "model_classes": {
-          "items": {
-            "$ref": "#/$defs/ModelCategoryEnum"
-          },
-          "title": "Model Classes",
-          "type": "array"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "serving_platform": {
-          "items": {
-            "$ref": "#/$defs/ServingPlatformEnum"
-          },
-          "title": "Serving Platform",
-          "type": "array"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "development_environment",
-        "serving_platform",
-        "model_classes",
-        "inference_modes"
-      ],
-      "title": "MLSpecs",
-      "type": "object"
-    },
-    "Metric": {
-      "properties": {
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
+        "DataConstraint": {
+            "properties": {
+                "name": {
+                    "default": "data_constraint",
+                    "title": "Name",
+                    "type": "string"
+                },
+                "constraint_list": {
+                    "items": {
+                        "$ref": "#/$defs/MetricConstraint"
+                    },
+                    "title": "Constraint List",
+                    "type": "array"
+                }
             },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Description"
+            "required": [
+                "constraint_list"
+            ],
+            "title": "DataConstraint",
+            "type": "object"
         },
-        "metric_name": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ServiceQualityEnum"
+        "DataFormatEnum": {
+            "enum": [
+                "binary",
+                "csv",
+                "json",
+                "avro",
+                "png",
+                "jpg",
+                "mp4"
+            ],
+            "title": "DataFormatEnum",
+            "type": "string"
+        },
+        "DataQualityEnum": {
+            "enum": [
+                "data_accuracy",
+                "completeness",
+                "total_errors",
+                "error_ratios",
+                "duplicate_ratio",
+                "total_duplicate",
+                "null_count",
+                "null_correlations",
+                "total_valid",
+                "total_none",
+                "none_ratio"
+            ],
+            "title": "DataQualityEnum",
+            "type": "string"
+        },
+        "DataSpecs": {
+            "properties": {
+                "id": {
+                    "title": "Id",
+                    "type": "string"
+                },
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "types": {
+                    "items": {
+                        "$ref": "#/$defs/DataTypeEnum"
+                    },
+                    "title": "Types",
+                    "type": "array"
+                },
+                "formats": {
+                    "items": {
+                        "$ref": "#/$defs/DataFormatEnum"
+                    },
+                    "title": "Formats",
+                    "type": "array"
+                }
             },
-            {
-              "$ref": "#/$defs/MLModelQualityEnum"
+            "required": [
+                "id",
+                "name",
+                "types",
+                "formats"
+            ],
+            "title": "DataSpecs",
+            "type": "object"
+        },
+        "DataTypeEnum": {
+            "enum": [
+                "video",
+                "image",
+                "message"
+            ],
+            "title": "DataTypeEnum",
+            "type": "string"
+        },
+        "DevelopmentEnvironmentEnum": {
+            "enum": [
+                "kerash5",
+                "onnx"
+            ],
+            "title": "DevelopmentEnvironmentEnum",
+            "type": "string"
+        },
+        "FairnessConstraint": {
+            "properties": {
+                "name": {
+                    "default": "fairness_constraint",
+                    "title": "Name",
+                    "type": "string"
+                },
+                "constraint_list": {
+                    "items": {
+                        "$ref": "#/$defs/MetricConstraint"
+                    },
+                    "title": "Constraint List",
+                    "type": "array"
+                }
             },
-            {
-              "$ref": "#/$defs/DataQualityEnum"
+            "required": [
+                "constraint_list"
+            ],
+            "title": "FairnessConstraint",
+            "type": "object"
+        },
+        "ImageQualityNameEnum": {
+            "enum": [
+                "image_size",
+                "object_size",
+                "color_mode",
+                "color_channel"
+            ],
+            "title": "ImageQualityNameEnum",
+            "type": "string"
+        },
+        "InferenceModeEnum": {
+            "enum": [
+                "static",
+                "dynamic"
+            ],
+            "title": "InferenceModeEnum",
+            "type": "string"
+        },
+        "InfrastructureEnum": {
+            "enum": [
+                "Raspberry Pi 4 Model B",
+                "NVIDIA Jetson Nano",
+                "NVIDIA Jetson Orin Nano",
+                "NVIDIA Jetson AGX Xavier",
+                "Beelink BT3",
+                "Rock Pi N10"
+            ],
+            "title": "InfrastructureEnum",
+            "type": "string"
+        },
+        "InterpretabilityConstraint": {
+            "properties": {
+                "explainability": {
+                    "title": "Explainability",
+                    "type": "object"
+                }
             },
-            {
-              "$ref": "#/$defs/ResourcesUtilizationMetricNameEnum"
+            "required": [
+                "explainability"
+            ],
+            "title": "InterpretabilityConstraint",
+            "type": "object"
+        },
+        "MLModelQualityEnum": {
+            "enum": [
+                "auc",
+                "model_accuracy",
+                "mse",
+                "precision",
+                "recall"
+            ],
+            "title": "MLModelQualityEnum",
+            "type": "string"
+        },
+        "MLSpecificConstraint": {
+            "properties": {
+                "name": {
+                    "default": "ml_specific_constraint",
+                    "title": "Name",
+                    "type": "string"
+                },
+                "constraint_list": {
+                    "items": {
+                        "$ref": "#/$defs/MetricConstraint"
+                    },
+                    "title": "Constraint List",
+                    "type": "array"
+                }
             },
-            {
-              "$ref": "#/$defs/ImageQualityNameEnum"
+            "required": [
+                "constraint_list"
+            ],
+            "title": "MLSpecificConstraint",
+            "type": "object"
+        },
+        "MLSpecs": {
+            "properties": {
+                "id": {
+                    "title": "Id",
+                    "type": "string"
+                },
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "development_environment": {
+                    "items": {
+                        "$ref": "#/$defs/DevelopmentEnvironmentEnum"
+                    },
+                    "title": "Development Environment",
+                    "type": "array"
+                },
+                "serving_platform": {
+                    "items": {
+                        "$ref": "#/$defs/ServingPlatformEnum"
+                    },
+                    "title": "Serving Platform",
+                    "type": "array"
+                },
+                "model_classes": {
+                    "items": {
+                        "$ref": "#/$defs/ModelCategoryEnum"
+                    },
+                    "title": "Model Classes",
+                    "type": "array"
+                },
+                "inference_modes": {
+                    "items": {
+                        "$ref": "#/$defs/InferenceModeEnum"
+                    },
+                    "title": "Inference Modes",
+                    "type": "array"
+                }
             },
-            {
-              "type": "string"
-            }
-          ],
-          "title": "Metric Name"
+            "required": [
+                "id",
+                "name",
+                "development_environment",
+                "serving_platform",
+                "model_classes",
+                "inference_modes"
+            ],
+            "title": "MLSpecs",
+            "type": "object"
         },
-        "records": {
-          "default": [],
-          "items": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "title": "Records",
-          "type": "array"
-        },
-        "unit": {
-          "anyOf": [
-            {
-              "type": "string"
+        "Metric": {
+            "properties": {
+                "metric_name": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/ServiceQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/MLModelQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/DataQualityEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/ResourcesUtilizationMetricNameEnum"
+                        },
+                        {
+                            "$ref": "#/$defs/ImageQualityNameEnum"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ],
+                    "title": "Metric Name"
+                },
+                "records": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "items": {},
+                                "type": "array"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "title": "Records",
+                    "type": "array"
+                },
+                "unit": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Unit"
+                },
+                "description": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Description"
+                }
             },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Unit"
+            "required": [
+                "metric_name"
+            ],
+            "title": "Metric",
+            "type": "object"
+        },
+        "MetricConstraint": {
+            "properties": {
+                "metrics": {
+                    "$ref": "#/$defs/Metric"
+                },
+                "condition": {
+                    "$ref": "#/$defs/Condition"
+                },
+                "aggregate_function": {
+                    "$ref": "#/$defs/AggregateFunctionEnum"
+                }
+            },
+            "required": [
+                "metrics",
+                "condition",
+                "aggregate_function"
+            ],
+            "title": "MetricConstraint",
+            "type": "object"
+        },
+        "MicroserviceSpecs": {
+            "properties": {
+                "id": {
+                    "title": "Id",
+                    "type": "string"
+                },
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "service_api": {
+                    "items": {
+                        "$ref": "#/$defs/ServiceAPIEnum"
+                    },
+                    "title": "Service Api",
+                    "type": "array"
+                },
+                "infrastructure": {
+                    "items": {
+                        "$ref": "#/$defs/InfrastructureEnum"
+                    },
+                    "title": "Infrastructure",
+                    "type": "array"
+                },
+                "processor_types": {
+                    "items": {
+                        "$ref": "#/$defs/ProcessorEnum"
+                    },
+                    "title": "Processor Types",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "id",
+                "name",
+                "service_api",
+                "infrastructure",
+                "processor_types"
+            ],
+            "title": "MicroserviceSpecs",
+            "type": "object"
+        },
+        "ModelCategoryEnum": {
+            "enum": [
+                "SVM",
+                "DT",
+                "CNN",
+                "LR",
+                "KMeans",
+                "ANN"
+            ],
+            "title": "ModelCategoryEnum",
+            "type": "string"
+        },
+        "OperatorEnum": {
+            "enum": [
+                "range",
+                "less_equal",
+                "greater_equal",
+                "less_than",
+                "greater_than",
+                "equal"
+            ],
+            "title": "OperatorEnum",
+            "type": "string"
+        },
+        "PrivacyConstraint": {
+            "properties": {
+                "risks": {
+                    "title": "Risks",
+                    "type": "object"
+                }
+            },
+            "required": [
+                "risks"
+            ],
+            "title": "PrivacyConstraint",
+            "type": "object"
+        },
+        "ProcessorEnum": {
+            "enum": [
+                "CPU",
+                "GPU",
+                "TPU"
+            ],
+            "title": "ProcessorEnum",
+            "type": "string"
+        },
+        "QualityConstraint": {
+            "properties": {
+                "service": {
+                    "items": {
+                        "$ref": "#/$defs/ServiceConstraint"
+                    },
+                    "title": "Service",
+                    "type": "array"
+                },
+                "data": {
+                    "items": {
+                        "$ref": "#/$defs/DataConstraint"
+                    },
+                    "title": "Data",
+                    "type": "array"
+                },
+                "ml_specific": {
+                    "items": {
+                        "$ref": "#/$defs/MLSpecificConstraint"
+                    },
+                    "title": "Ml Specific",
+                    "type": "array"
+                },
+                "security": {
+                    "items": {
+                        "$ref": "#/$defs/SecurityConstraint"
+                    },
+                    "title": "Security",
+                    "type": "array"
+                },
+                "privacy": {
+                    "items": {
+                        "$ref": "#/$defs/PrivacyConstraint"
+                    },
+                    "title": "Privacy",
+                    "type": "array"
+                },
+                "fairness": {
+                    "items": {
+                        "$ref": "#/$defs/FairnessConstraint"
+                    },
+                    "title": "Fairness",
+                    "type": "array"
+                },
+                "interpretability": {
+                    "items": {
+                        "$ref": "#/$defs/InterpretabilityConstraint"
+                    },
+                    "title": "Interpretability",
+                    "type": "array"
+                },
+                "cost": {
+                    "items": {
+                        "$ref": "#/$defs/CostConstraint"
+                    },
+                    "title": "Cost",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "service",
+                "data",
+                "ml_specific",
+                "security",
+                "privacy",
+                "fairness",
+                "interpretability",
+                "cost"
+            ],
+            "title": "QualityConstraint",
+            "type": "object"
+        },
+        "ResourceEnum": {
+            "enum": [
+                "ml_service",
+                "storage",
+                "ml_models"
+            ],
+            "title": "ResourceEnum",
+            "type": "string"
+        },
+        "ResourceSpecs": {
+            "properties": {
+                "services_specs": {
+                    "items": {
+                        "$ref": "#/$defs/MicroserviceSpecs"
+                    },
+                    "title": "Services Specs",
+                    "type": "array"
+                },
+                "data_specs": {
+                    "$ref": "#/$defs/DataSpecs"
+                },
+                "ml_specs": {
+                    "$ref": "#/$defs/MLSpecs"
+                }
+            },
+            "required": [
+                "services_specs",
+                "data_specs",
+                "ml_specs"
+            ],
+            "title": "ResourceSpecs",
+            "type": "object"
+        },
+        "ResourcesUtilizationMetricNameEnum": {
+            "enum": [
+                "cpu_usage",
+                "memory_usage"
+            ],
+            "title": "ResourcesUtilizationMetricNameEnum",
+            "type": "string"
+        },
+        "SecurityConstraint": {
+            "properties": {
+                "encryption": {
+                    "title": "Encryption",
+                    "type": "object"
+                }
+            },
+            "required": [
+                "encryption"
+            ],
+            "title": "SecurityConstraint",
+            "type": "object"
+        },
+        "ServiceAPIEnum": {
+            "enum": [
+                "REST",
+                "MQTT",
+                "Kafka",
+                "AMQP",
+                "coapp",
+                "socket",
+                "Debug"
+            ],
+            "title": "ServiceAPIEnum",
+            "type": "string"
+        },
+        "ServiceConstraint": {
+            "properties": {
+                "name": {
+                    "default": "service_constraint",
+                    "title": "Name",
+                    "type": "string"
+                },
+                "constraint_list": {
+                    "items": {
+                        "$ref": "#/$defs/MetricConstraint"
+                    },
+                    "title": "Constraint List",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "constraint_list"
+            ],
+            "title": "ServiceConstraint",
+            "type": "object"
+        },
+        "ServiceQualityEnum": {
+            "enum": [
+                "availability",
+                "reliability",
+                "response_time"
+            ],
+            "title": "ServiceQualityEnum",
+            "type": "string"
+        },
+        "ServingPlatformEnum": {
+            "enum": [
+                "TensorFlow",
+                "prediction"
+            ],
+            "title": "ServingPlatformEnum",
+            "type": "string"
+        },
+        "Stakeholder": {
+            "properties": {
+                "id": {
+                    "title": "Id",
+                    "type": "string"
+                },
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "roles": {
+                    "items": {
+                        "$ref": "#/$defs/StakeholderRoleEnum"
+                    },
+                    "title": "Roles",
+                    "type": "array"
+                },
+                "provisioning": {
+                    "items": {
+                        "$ref": "#/$defs/ResourceEnum"
+                    },
+                    "title": "Provisioning",
+                    "type": "array"
+                }
+            },
+            "required": [
+                "id",
+                "name",
+                "roles",
+                "provisioning"
+            ],
+            "title": "Stakeholder",
+            "type": "object"
+        },
+        "StakeholderRoleEnum": {
+            "enum": [
+                "ml_consumer",
+                "ml_provider",
+                "ml_infrastructure"
+            ],
+            "title": "StakeholderRoleEnum",
+            "type": "string"
         }
-      },
-      "required": [
-        "metric_name"
-      ],
-      "title": "Metric",
-      "type": "object"
     },
-    "MetricConstraint": {
-      "properties": {
-        "aggregate_function": {
-          "$ref": "#/$defs/AggregateFunctionEnum"
+    "properties": {
+        "stakeholders": {
+            "items": {
+                "$ref": "#/$defs/Stakeholder"
+            },
+            "title": "Stakeholders",
+            "type": "array"
         },
-        "condition": {
-          "$ref": "#/$defs/Condition"
+        "resources": {
+            "$ref": "#/$defs/ResourceSpecs"
         },
-        "metrics": {
-          "$ref": "#/$defs/Metric"
+        "quality": {
+            "$ref": "#/$defs/QualityConstraint"
         }
-      },
-      "required": [
-        "metrics",
-        "condition",
-        "aggregate_function"
-      ],
-      "title": "MetricConstraint",
-      "type": "object"
     },
-    "MicroserviceSpecs": {
-      "properties": {
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "infrastructure": {
-          "items": {
-            "$ref": "#/$defs/InfrastructureEnum"
-          },
-          "title": "Infrastructure",
-          "type": "array"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "processor_types": {
-          "items": {
-            "$ref": "#/$defs/ProcessorEnum"
-          },
-          "title": "Processor Types",
-          "type": "array"
-        },
-        "service_api": {
-          "items": {
-            "$ref": "#/$defs/ServiceAPIEnum"
-          },
-          "title": "Service Api",
-          "type": "array"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "service_api",
-        "infrastructure",
-        "processor_types"
-      ],
-      "title": "MicroserviceSpecs",
-      "type": "object"
-    },
-    "ModelCategoryEnum": {
-      "enum": [
-        "SVM",
-        "DT",
-        "CNN",
-        "LR",
-        "KMeans",
-        "ANN"
-      ],
-      "title": "ModelCategoryEnum",
-      "type": "string"
-    },
-    "OperatorEnum": {
-      "enum": [
-        "range",
-        "less_equal",
-        "greater_equal",
-        "less_than",
-        "greater_than",
-        "equal"
-      ],
-      "title": "OperatorEnum",
-      "type": "string"
-    },
-    "PrivacyConstraint": {
-      "properties": {
-        "risks": {
-          "title": "Risks",
-          "type": "object"
-        }
-      },
-      "required": [
-        "risks"
-      ],
-      "title": "PrivacyConstraint",
-      "type": "object"
-    },
-    "ProcessorEnum": {
-      "enum": [
-        "CPU",
-        "GPU",
-        "TPU"
-      ],
-      "title": "ProcessorEnum",
-      "type": "string"
-    },
-    "QualityConstraint": {
-      "properties": {
-        "cost": {
-          "items": {
-            "$ref": "#/$defs/CostConstraint"
-          },
-          "title": "Cost",
-          "type": "array"
-        },
-        "data": {
-          "items": {
-            "$ref": "#/$defs/DataConstraint"
-          },
-          "title": "Data",
-          "type": "array"
-        },
-        "fairness": {
-          "items": {
-            "$ref": "#/$defs/FairnessConstraint"
-          },
-          "title": "Fairness",
-          "type": "array"
-        },
-        "interpretability": {
-          "items": {
-            "$ref": "#/$defs/InterpretabilityConstraint"
-          },
-          "title": "Interpretability",
-          "type": "array"
-        },
-        "ml_specific": {
-          "items": {
-            "$ref": "#/$defs/MLSpecificConstraint"
-          },
-          "title": "Ml Specific",
-          "type": "array"
-        },
-        "privacy": {
-          "items": {
-            "$ref": "#/$defs/PrivacyConstraint"
-          },
-          "title": "Privacy",
-          "type": "array"
-        },
-        "security": {
-          "items": {
-            "$ref": "#/$defs/SecurityConstraint"
-          },
-          "title": "Security",
-          "type": "array"
-        },
-        "service": {
-          "items": {
-            "$ref": "#/$defs/ServiceConstraint"
-          },
-          "title": "Service",
-          "type": "array"
-        }
-      },
-      "required": [
-        "service",
-        "data",
-        "ml_specific",
-        "security",
-        "privacy",
-        "fairness",
-        "interpretability",
-        "cost"
-      ],
-      "title": "QualityConstraint",
-      "type": "object"
-    },
-    "ResourceEnum": {
-      "enum": [
-        "ml_service",
-        "storage",
-        "ml_models"
-      ],
-      "title": "ResourceEnum",
-      "type": "string"
-    },
-    "ResourceSpecs": {
-      "properties": {
-        "data_specs": {
-          "$ref": "#/$defs/DataSpecs"
-        },
-        "ml_specs": {
-          "$ref": "#/$defs/MLSpecs"
-        },
-        "services_specs": {
-          "items": {
-            "$ref": "#/$defs/MicroserviceSpecs"
-          },
-          "title": "Services Specs",
-          "type": "array"
-        }
-      },
-      "required": [
-        "services_specs",
-        "data_specs",
-        "ml_specs"
-      ],
-      "title": "ResourceSpecs",
-      "type": "object"
-    },
-    "ResourcesUtilizationMetricNameEnum": {
-      "enum": [
-        "cpu_usage",
-        "memory_usage"
-      ],
-      "title": "ResourcesUtilizationMetricNameEnum",
-      "type": "string"
-    },
-    "SecurityConstraint": {
-      "properties": {
-        "encryption": {
-          "title": "Encryption",
-          "type": "object"
-        }
-      },
-      "required": [
-        "encryption"
-      ],
-      "title": "SecurityConstraint",
-      "type": "object"
-    },
-    "ServiceAPIEnum": {
-      "enum": [
-        "REST",
-        "MQTT",
-        "Kafka",
-        "AMQP",
-        "coapp",
-        "socket",
-        "Debug"
-      ],
-      "title": "ServiceAPIEnum",
-      "type": "string"
-    },
-    "ServiceConstraint": {
-      "properties": {
-        "constraint_list": {
-          "items": {
-            "$ref": "#/$defs/MetricConstraint"
-          },
-          "title": "Constraint List",
-          "type": "array"
-        },
-        "name": {
-          "default": "service_constraint",
-          "title": "Name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "constraint_list"
-      ],
-      "title": "ServiceConstraint",
-      "type": "object"
-    },
-    "ServiceQualityEnum": {
-      "enum": [
-        "availability",
-        "reliability",
-        "response_time"
-      ],
-      "title": "ServiceQualityEnum",
-      "type": "string"
-    },
-    "ServingPlatformEnum": {
-      "enum": [
-        "TensorFlow",
-        "predictio"
-      ],
-      "title": "ServingPlatformEnum",
-      "type": "string"
-    },
-    "Stakeholder": {
-      "properties": {
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "provisioning": {
-          "items": {
-            "$ref": "#/$defs/ResourceEnum"
-          },
-          "title": "Provisioning",
-          "type": "array"
-        },
-        "roles": {
-          "items": {
-            "$ref": "#/$defs/StakeholderRoleEnum"
-          },
-          "title": "Roles",
-          "type": "array"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "roles",
-        "provisioning"
-      ],
-      "title": "Stakeholder",
-      "type": "object"
-    },
-    "StakeholderRoleEnum": {
-      "enum": [
-        "ml_provider",
-        "ml_provider",
-        "ml_infrastructure"
-      ],
-      "title": "StakeholderRoleEnum",
-      "type": "string"
-    }
-  },
-  "properties": {
-    "quality": {
-      "$ref": "#/$defs/QualityConstraint"
-    },
-    "resources": {
-      "$ref": "#/$defs/ResourceSpecs"
-    },
-    "stakeholders": {
-      "items": {
-        "$ref": "#/$defs/Stakeholder"
-      },
-      "title": "Stakeholders",
-      "type": "array"
-    }
-  },
-  "required": [
-    "stakeholders",
-    "resources",
-    "quality"
-  ],
-  "title": "MLContract",
-  "type": "object"
+    "required": [
+        "stakeholders",
+        "resources",
+        "quality"
+    ],
+    "title": "MLContract",
+    "type": "object"
 }

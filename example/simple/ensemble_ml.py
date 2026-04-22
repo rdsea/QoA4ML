@@ -15,7 +15,6 @@ client2 = QoaClient(config_path="./config/client2.yaml")
 client3 = QoaClient(config_path="./config/client3.yaml")
 client4 = QoaClient(config_path="./config/client4.yaml")
 client5 = QoaClient(config_path="./config/client5.yaml")
-# client5.process_monitor_start(1)
 
 
 if __name__ == "__main__":

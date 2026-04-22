@@ -53,7 +53,7 @@ Post-review fixes (same release):
   env vars (default debug off, default bind 127.0.0.1) — closes RCE risk.
 - Probe: removed dead ``execution_flag``, ``report_thread``, ``max_latency``;
   removed dead ``inference_flag`` / ``process_monitor_flag`` from QoaClient.
-- Tests: 30+ new regressions in tests/test_regressions_0_3_19_post.py.
+- Tests: 50+ new regressions in tests/test_regressions_0_3_19_post.py.
 
 Additional breaking changes from post-review fixes:
 - PromConnector.inc/dec/observe raise ValueError on type mismatch (were
@@ -197,8 +197,9 @@ Medium:
   one — no more leaked daemon thread on double-start; latency log path
   uses os.path.join instead of naive string concatenation.
 - Rohe_Agent: Mongo insert wrapped in try/except PyMongoError; double
-  start() guarded; mongo_client.close() in stop(); no more connection
-  pool leak across restart cycles.
+  start() guarded; mongo_client.close() moved to new ``shutdown()`` method
+  (``stop()`` is now a pause that keeps Mongo alive for ``restart()``);
+  no more connection pool leak across restart cycles.
 - rohe_ObService: startup raises SystemExit when config fails to load
   (previously crashed on first request); PUT/DELETE stubs return HTTP
   501 with a consistent auth gate instead of fake-success payloads.

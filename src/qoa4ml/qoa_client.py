@@ -246,6 +246,12 @@ class QoaClient[T: AbstractReport]:
         requests.Response
             The response from the registration service, containing connector configurations.
 
+        Raises
+        ------
+        ValueError
+            If ``url`` is not http/https, lacks a hostname, or targets a
+            cloud-metadata endpoint (SSRF hardening, 0.3.19).
+
         Notes
         -----
         This method sends a POST request to the given URL with the client's configuration in JSON format.
@@ -445,13 +451,13 @@ class QoaClient[T: AbstractReport]:
         with self.lock:
             if self.timer_flag is False:
                 self.timer_flag = True
-                self.timerStart = time.time()
+                self.timer_start = time.time()
                 return {}
             else:
                 self.timer_flag = False
                 response_time = {
-                    "startTime": self.timerStart,
-                    "responseTime": time.time() - self.timerStart,
+                    "startTime": self.timer_start,
+                    "responseTime": time.time() - self.timer_start,
                 }
         self.observe_metric(ServiceQualityEnum.RESPONSE_TIME, response_time, category=0)
         return response_time
